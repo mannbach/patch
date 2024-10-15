@@ -1,0 +1,17 @@
+services:
+  patch:
+    image: patch
+    container_name: patch
+    build:
+      context: ./
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+    env_file:
+      - '${PATH_THIS_CONFIG:-./config/sample.env}'
+    volumes:
+      - '.:/patch'
+      - '${PATH_HOST_DATA:-./data/}:${PATH_CONTAINER_DATA:-/mnt/data}' # Default "./data/"
+      - '${PATH_HOST_OUTPUT:-./output/}:${PATH_CONTAINER_OUTPUT:-/mnt/output/}'
+volumes:
+  volume-database:
+    driver: local
