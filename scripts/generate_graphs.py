@@ -30,21 +30,21 @@ def parse_args() -> Dict[str, Any]:
     ap.add_argument("-N", default=N, type=int)
     ap.add_argument("-m", default=M, type=int)
     ap.add_argument("-f", default=[F], nargs="+", type=float)
-    ap.add_argument("-H", default=L_HOMOPHILY, nargs="+", type=float)
+    ap.add_argument("-h", default=L_HOMOPHILY, nargs="+", type=float)
     ap.add_argument("-tau", default=L_TAU, nargs="+", type=float)
     ap.add_argument("--realizations", "-r",
                     default=N_REALIZATIONS, type=int)
     ap.add_argument("-lfm-g",
                     nargs="+",
                     default=L_LFM_GLOBAL, type=str, choices=L_LFM_GLOBAL)
-    ap.add_argument("-lfm-t",
+    ap.add_argument("-lfm-l",
                     nargs="+",
                     default=L_LFM_LOCAL, type=str, choices=L_LFM_LOCAL)
     ap.add_argument("--n-processes", default=1, type=int)
 
     d_a = ap.parse_args()
 
-    assert os.path.isdir(d_a.path), f"Path {d_a.path} does not exist."
+    assert os.path.isdir(d_a.path)
 
     return d_a
 
@@ -87,7 +87,7 @@ def main():
     realizations = list(range(args.realizations))
     n_combs = args.realizations\
         * len(args.tau)\
-        * len(args.H)\
+        * len(args.h)\
         * len(args.f)\
         * len(args.lfm_g)\
         * len(args.lfm_t)
@@ -95,7 +95,7 @@ def main():
     queue = Queue()
     for i, (f, h, tau, lfm_g, lfm_l, real)  in enumerate(
         product(args.f,
-                args.H,
+                args.h,
                 args.tau,
                 args.lfm_g,
                 args.lfm_t,
