@@ -1,6 +1,7 @@
 """Generates graphs for the given parameters and stores them as JSON.
 """
 import os
+from dataclasses import asdict
 from queue import Empty
 from multiprocessing import Queue, Process
 from itertools import product
@@ -25,19 +26,19 @@ def parse_args() -> Dict[str, Any]:
     Dict[str, Any]
         The parsed arguments.
     """
-    ap = ArgumentParser("Generate graphs.")
+    ap = ArgumentParser("Graph Generator")
     ap.add_argument("--path", "-p", default=PATH_GRAPHS, type=str)
     ap.add_argument("-N", default=N, type=int)
     ap.add_argument("-m", default=M, type=int)
     ap.add_argument("-f", default=[F], nargs="+", type=float)
-    ap.add_argument("-h", default=L_HOMOPHILY, nargs="+", type=float)
+    ap.add_argument("-H", default=L_HOMOPHILY, nargs="+", type=float)
     ap.add_argument("-tau", default=L_TAU, nargs="+", type=float)
     ap.add_argument("--realizations", "-r",
                     default=N_REALIZATIONS, type=int)
     ap.add_argument("-lfm-g",
                     nargs="+",
                     default=L_LFM_GLOBAL, type=str, choices=L_LFM_GLOBAL)
-    ap.add_argument("-lfm-l",
+    ap.add_argument("-lfm-t",
                     nargs="+",
                     default=L_LFM_LOCAL, type=str, choices=L_LFM_LOCAL)
     ap.add_argument("--n-processes", default=1, type=int)
@@ -70,7 +71,9 @@ def work(queue_tasks: Queue, path: str):
         print(f"Working on (seed={i}) {task}")
 
         # Generate the graph
-        graph = PATCHModel(**model_config, seed=i).simulate()
+        graph = PATCHModel(
+            **asdict(model_config),
+            seed=i).simulate()
 
         write_graph_to_json(
             path=os.path.join(
@@ -87,7 +90,7 @@ def main():
     realizations = list(range(args.realizations))
     n_combs = args.realizations\
         * len(args.tau)\
-        * len(args.h)\
+        * len(args.H)\
         * len(args.f)\
         * len(args.lfm_g)\
         * len(args.lfm_t)
@@ -95,7 +98,7 @@ def main():
     queue = Queue()
     for i, (f, h, tau, lfm_g, lfm_l, real)  in enumerate(
         product(args.f,
-                args.h,
+                args.H,
                 args.tau,
                 args.lfm_g,
                 args.lfm_t,
