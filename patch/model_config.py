@@ -1,7 +1,7 @@
 """Defines a dataclass to store the configuration of the PATCH model and validate its configuration.
 """
-from typing import Union
-from dataclasses import dataclass
+from typing import Union, Dict, Any
+from dataclasses import dataclass, asdict
 
 from netin.models import CompoundLFM
 
@@ -60,3 +60,38 @@ class ModelConfig:
     lfm_global: _LFMValidator = _LFMValidator()
     lfm_tc: _LFMValidator = _LFMValidator() # Validate the local link formation mechanism
     realization: int
+
+    @classmethod
+    def from_dict(cls, d: Dict[str, Any]) -> "ModelConfig":
+        """Creates a ModelConfig from a dictionary.
+
+        Parameters
+        ----------
+        d : Dict[str, Any]
+            The dictionary containing the configuration.
+
+        Returns
+        -------
+        ModelConfig
+            The configuration object.
+        """
+        return cls(
+            N=d["N"],
+            m=d["m"],
+            minority_fraction=d["minority_fraction"],
+            homophily=d["homophily"],
+            tau=d["tau"],
+            lfm_global=d["lfm_global"],
+            lfm_tc=d["lfm_tc"],
+            realization=d["realization"]
+        )
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Converts the configuration to a dictionary.
+
+        Returns
+        -------
+        Dict[str, Any]
+            The configuration dictionary.
+        """
+        return asdict(self)
