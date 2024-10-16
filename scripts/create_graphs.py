@@ -1,7 +1,6 @@
 """Generates graphs for the given parameters and stores them as JSON.
 """
 import os
-from dataclasses import asdict
 from queue import Empty
 from multiprocessing import Queue, Process
 from itertools import product
@@ -70,12 +69,16 @@ def work(queue_tasks: Queue, path: str):
 
         print(f"Working on (seed={i}) {task}")
 
+        # Convert model config to dictionary
+        d_model_config = model_config.to_dict()
+
         # Generate the graph
         graph = PATCHModel(
-            **asdict(model_config),
+            **d_model_config,
             seed=i).simulate()
 
         write_graph_to_json(
+            **d_model_config,
             path=os.path.join(
                 path,
                 create_file_name(model_config=model_config)),
