@@ -7,11 +7,13 @@ WORKDIR /patch
 
 # Copy local files to workdir
 ADD . /patch/
+ADD ../NetworkInequalities /NetworkInequalities/
 
 # Install packages
 RUN \
     pip install --upgrade pip &&\
     pip install -r requirements.txt &&\
+    pip install -e /NetworkInequalities &&\
     pip install -e ./
 
 # Print
