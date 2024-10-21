@@ -7,7 +7,6 @@ WORKDIR /patch
 
 # Copy local files to workdir
 ADD . /patch/
-ADD ../NetworkInequalities /NetworkInequalities/
 
 # Install packages
 RUN \
