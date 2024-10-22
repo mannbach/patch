@@ -20,3 +20,7 @@ PATH_PLOTS = "./output/plots/"
 
 # Computation
 STOP_SIGNAL = -1
+
+# Plotting
+COLOR_MAJ = "#2c7bb6ff"
+COLOR_MIN = "#d7191cff"
