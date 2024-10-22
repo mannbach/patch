@@ -54,7 +54,7 @@ class ModelConfig:
     """
     N: int
     m: int
-    minority_fraction: float
+    f_m: float
     homophily: float
     tau: float
     lfm_global: _LFMValidator = _LFMValidator()
@@ -78,7 +78,7 @@ class ModelConfig:
         return cls(
             N=d["N"],
             m=d["m"],
-            minority_fraction=d["minority_fraction"],
+            f_m=d["f_m"],
             homophily=d["homophily"],
             tau=d["tau"],
             lfm_global=d["lfm_global"],

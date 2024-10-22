@@ -68,7 +68,7 @@ def create_file_name(
     return (
         f"{prefix}"
         f"N-{model_config.N}_m-{model_config.m}_"
-        f"f-{model_config.minority_fraction}_"
+        f"f-{model_config.f_m}_"
         f"h-{model_config.homophily}_"
         f"tau-{model_config.tau}_"
         f"lfm-g-{model_config.lfm_global}_"
@@ -123,7 +123,7 @@ def gen_nets_from_file(
             read_graph_from_json(os.path.join(path, create_file_name(
                 ModelConfig(
                     N=N, m=m,
-                    minority_fraction=f,
+                    f_m=f,
                     homophily=h,
                     tau=tau,
                     lfm_global=lfm_g,

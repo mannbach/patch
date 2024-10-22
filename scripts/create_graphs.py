@@ -109,7 +109,7 @@ def main():
         queue.put((i, ModelConfig(
             N=args.N,
             m=args.m,
-            minority_fraction=f,
+            f_m=f,
             homophily=h,
             tau=tau,
             lfm_global=lfm_g,
