@@ -8,7 +8,7 @@ from netin.graphs import Graph, NodeVector
 import numpy as np
 import scipy as sc
 
-def compute_ei(net: Graph) -> Tuple[float, float]:
+def compute_ei(net: Graph) -> float:
     """Compute the EI index of the network as a measure of network segregation.
 
     Parameters
@@ -78,6 +78,6 @@ def compute_mann_whitney(net: Graph) -> float:
     nodes_min = net.get_node_class(CLASS_ATTRIBUTE)
     degrees = net.degrees()
 
-    k_min, k_maj = degrees[nodes_min], degrees[~nodes_min]
+    k_min, k_maj = degrees[nodes_min], degrees[np.invert(nodes_min)]
 
     return sc.stats.mannwhitneyu(k_min, k_maj).statistic / (len(k_min) * len(k_maj))
