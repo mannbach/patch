@@ -12,7 +12,6 @@ ADD . /patch/
 RUN \
     pip install --upgrade pip &&\
     pip install -r requirements.txt &&\
-    pip install -e /NetworkInequalities &&\
     pip install -e ./
 
 # Print
