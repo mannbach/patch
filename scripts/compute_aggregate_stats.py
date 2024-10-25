@@ -1,10 +1,11 @@
 from multiprocessing import Queue, Process
 from queue import Empty
 from argparse import ArgumentParser
-from typing import Dict, Any, NamedTuple
+from typing import Dict, Any, NamedTuple, List
 import csv
 import os
 import json
+import dataclasses
 
 import numpy as np
 
@@ -33,7 +34,8 @@ def parse_args() -> Dict[str, Any]:
 
     return d_a
 
-class StatsResult(NamedTuple):
+@dataclasses.dataclass
+class StatsResult:
     """Provides a named tuple to store the results of the aggregate statistics.
     """
     model_config: ModelConfig
@@ -41,6 +43,24 @@ class StatsResult(NamedTuple):
     ei: float
     mann_whitney: float
     json_data: str = None
+
+    _CSV_FIELDS_STATS = ("gini", "ei", "mann_whitney")
+
+    @staticmethod
+    def get_csv_fields() -> List[str]:
+        return tuple(field.name for field in dataclasses.fields(ModelConfig)) + StatsResult._CSV_FIELDS_STATS
+
+    def get_csv_values(self) -> List[Any]:
+        l_vals = []
+
+        d_config = self.model_config.to_dict(stringify=True)
+        for field in dataclasses.fields(ModelConfig):
+            l_vals.append(d_config[field.name])
+
+        for field in StatsResult._CSV_FIELDS_STATS:
+            l_vals.append(getattr(self, field))
+
+        return l_vals
 
 class NpEncoder(json.JSONEncoder):
     """Encoder for numpy types to be used in json.dumps.
@@ -80,17 +100,13 @@ def work(queue_tasks: Queue, queue_results: Queue, folder_graphs: str):
         print(f"Working on ({i}) {task}")
 
         # Generate the graph
-        graph, data = read_graph_from_json(
+        model_config, graph = read_graph_from_json(
             os.path.join(folder_graphs, file_graph))
-
-
-        # Store minority nodes in a set
-        model_config = ModelConfig.from_dict(data)
 
         # Compute the aggregate statistics
         stats = StatsResult(
             model_config=model_config,
-            gini=compute_gini(graph),
+            gini=compute_gini(graph.degrees()),
             ei=compute_ei(graph),
             mann_whitney=compute_mann_whitney(graph)
         )
@@ -129,14 +145,14 @@ def main():
     with open(args.path_results, 'w+', encoding="utf-8") as file:
         csv_writer = csv.writer(file)
         # Write CSV header
-        csv_writer.writerow(StatsResult._fields)
+        csv_writer.writerow(StatsResult.get_csv_fields())
 
         # Write until number of expected results reached
         while n_combs > 0:
             stats = queue_results.get()
 
             # Write JSON graph to file
-            csv_writer.writerow(stats)
+            csv_writer.writerow(stats.get_csv_values())
 
             n_combs -= 1
 
