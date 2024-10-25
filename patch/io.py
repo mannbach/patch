@@ -1,32 +1,43 @@
 from itertools import product
 import json
 import os
-from typing import Any, Dict, Tuple, Union, List, Generator
+from typing import Any, Dict, Tuple, List, Generator
 
-import networkx as nx
-from netin.models import PATCHModel
-from netin.graphs import Graph
+import numpy as np
+from netin.graphs import Graph, BinaryClassNodeVector
+from netin.utils.constants import CLASS_ATTRIBUTE
 
 from .model_config import ModelConfig
 
-def read_graph_from_json(path: str) -> Tuple[PATCHModel, Dict[str, Union[int, float]]]:
-    """Read a graph from a json file.
-    Returns tuple of the graph and a dict that holds the remaining information
-    stored in the file (e.g. minority nodes, generation parameters, ...).
+def read_graph_from_json(path: str) -> Tuple[ModelConfig, Graph]:
+    """Reads graphs and model config from a JSON file.
 
-    Args:
-        path (str): Path to the json file.
+    Parameters
+    ----------
+    path : str
+        Path to the JSON file.
 
-    Returns:
-        Union[PATCHModel, Dict[str, Union[int, float]]]: Tuple containing the graph
-            and dict that contains additional information.
+    Returns
+    -------
+    Tuple[ModelConfig, Graph]
+        The model config and read Graph.
     """
     graph = None
     with open(path, 'r', encoding="utf-8") as file:
         data = json.load(file)
-        graph = nx.from_edgelist(data["edge_list"])
-    del data["edge_list"]
-    return graph, data
+        model_config = ModelConfig.from_dict(data)
+        graph = Graph()
+        for node in range(model_config.N):
+            graph.add_node(node)
+        for u, v in data["edge_list"]:
+            graph.add_edge(u, v)
+        node_ids_min = np.asarray(data[CLASS_ATTRIBUTE])
+        # Convert IDs to boolean mask
+        node_ids_mask = np.isin(np.arange(model_config.N), node_ids_min, assume_unique=True)
+        graph.set_node_class(
+            CLASS_ATTRIBUTE,
+            BinaryClassNodeVector.from_ndarray(node_ids_mask))
+    return model_config, graph
 
 def write_graph_to_json(
     path: str,
@@ -44,7 +55,10 @@ def write_graph_to_json(
     data = {}
     for key, val in kwargs.items():
         data[key] = val
-    data["edge_list"] = [(int(u), int(v)) for (u,v) in graph.edges]
+    node_ids = np.arange(len(graph))
+    data[CLASS_ATTRIBUTE] = node_ids[graph.get_node_class(CLASS_ATTRIBUTE)\
+                                     .get_minority_mask()].tolist()
+    data["edge_list"] = [(int(u), int(v)) for (u,v) in graph.edges()]
     with open(path, 'w', encoding="utf-8") as file:
         file.writelines(json.dumps(data, indent=2))
 
@@ -71,8 +85,8 @@ def create_file_name(
         f"f-{model_config.f_m}_"
         f"h-{model_config.homophily}_"
         f"tau-{model_config.tau}_"
-        f"lfm-g-{model_config.lfm_global}_"
-        f"lfm-t-{model_config.lfm_tc}_"
+        f"lfm-g-{model_config.lfm_global.value}_"
+        f"lfm-t-{model_config.lfm_tc.value}_"
         f"r-{model_config.realization}{suffix}{file_ending}"
     )
 
