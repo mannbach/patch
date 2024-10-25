@@ -24,7 +24,7 @@ def compute_ei(net: Graph) -> float:
         Values close to -1 indicate segregation, as nodes prefer to connect their own group.
     """
     cnt_mM, cnt_mm, cnt_MM = 0, 0, 0
-    nodes_min = net.get_node_class(CLASS_ATTRIBUTE)
+    nodes_min = net.get_node_class(CLASS_ATTRIBUTE).get_minority_mask()
 
     for u,v in net.edges():
         u_min, v_min = nodes_min[u], nodes_min[v]
@@ -78,6 +78,7 @@ def compute_mann_whitney(net: Graph) -> float:
     nodes_min = net.get_node_class(CLASS_ATTRIBUTE)
     degrees = net.degrees()
 
-    k_min, k_maj = degrees[nodes_min], degrees[np.invert(nodes_min)]
+    k_min, k_maj = degrees[nodes_min.get_minority_mask()],\
+        degrees[nodes_min.get_majority_mask()]
 
     return sc.stats.mannwhitneyu(k_min, k_maj).statistic / (len(k_min) * len(k_maj))
