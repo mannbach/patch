@@ -31,7 +31,7 @@ def f_mw(g):
     return compute_mann_whitney(g)
 
 def main():
-    # elfi.set_client('multiprocessing')
+    elfi.set_client('multiprocessing')
 
     rng = np.random.RandomState(0)
 
