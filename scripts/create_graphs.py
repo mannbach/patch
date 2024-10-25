@@ -69,16 +69,14 @@ def work(queue_tasks: Queue, path: str):
 
         print(f"Working on (seed={i}) {task}")
 
-        # Convert model config to dictionary
-        d_model_config = model_config.to_dict()
-
         # Generate the graph
         graph = PATCHModel(
-            **d_model_config,
+            **model_config.to_dict(split_homophily=True),
             seed=i).simulate()
 
         write_graph_to_json(
-            **d_model_config,
+            **model_config.to_dict(
+                split_homophily=True, stringify=True),
             path=os.path.join(
                 path,
                 create_file_name(model_config=model_config)),
@@ -106,7 +104,8 @@ def main():
                 args.lfm_g,
                 args.lfm_t,
                 realizations)):
-        queue.put((i, ModelConfig(
+        try:
+            config = ModelConfig(
             N=args.N,
             m=args.m,
             f_m=f,
@@ -114,8 +113,10 @@ def main():
             tau=tau,
             lfm_global=lfm_g,
             lfm_tc=lfm_l,
-            realization=real
-        )))
+            realization=real)
+            queue.put((i, config))
+        except ValueError as e:
+            print(f"Skipping {i} due to {e}")
 
     for _ in range(args.n_processes):
         queue.put(STOP_SIGNAL)
