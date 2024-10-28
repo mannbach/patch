@@ -15,7 +15,7 @@ L_TAU = [0., 0.25, 0.5, 0.75, 1.]
 
 # IO
 PATH_GRAPHS = "./data/graphs/"
-PATH_STATISTICS = "./output/aggregate_statistics.csv"
+PATH_STATISTICS = "./output/stats/"
 PATH_PLOTS = "./output/plots/"
 
 # Computation
@@ -35,4 +35,11 @@ MAP_STAT_LABEL = {
     "gini": "Gini",
     "ei": "EI-index",
     "mann_whitney": "Mann-Whitney",
+}
+MAP_CM_H = {
+    L_HOMOPHILY[0]: "#5e3c99",
+    L_HOMOPHILY[1]: "#9b6dbf",
+    L_HOMOPHILY[2]: "#b0b0b0",
+    L_HOMOPHILY[3]: "#fdb863",
+    L_HOMOPHILY[4]: "#e66101"
 }

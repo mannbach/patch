@@ -1,13 +1,14 @@
 from multiprocessing import Queue, Process
 from queue import Empty
 from argparse import ArgumentParser
-from typing import Dict, Any, NamedTuple, List
+from typing import Dict, Any, List
 import csv
 import os
 import json
 import dataclasses
 
 import numpy as np
+from netin.utils.constants import CLASS_ATTRIBUTE
 
 from patch.constants import\
     STOP_SIGNAL, PATH_GRAPHS, PATH_STATISTICS
@@ -42,6 +43,8 @@ class StatsResult:
     gini: float
     ei: float
     mann_whitney: float
+    gini_min: float
+    gini_maj: float
     json_data: str = None
 
     _CSV_FIELDS_STATS = ("gini", "ei", "mann_whitney")
@@ -103,12 +106,17 @@ def work(queue_tasks: Queue, queue_results: Queue, folder_graphs: str):
         model_config, graph = read_graph_from_json(
             os.path.join(folder_graphs, file_graph))
 
+        degrees = graph.degrees()
+        nodes_min = graph.get_node_class(CLASS_ATTRIBUTE)
+
         # Compute the aggregate statistics
         stats = StatsResult(
             model_config=model_config,
-            gini=compute_gini(graph.degrees()),
+            gini=compute_gini(degrees),
             ei=compute_ei(graph),
-            mann_whitney=compute_mann_whitney(graph)
+            mann_whitney=compute_mann_whitney(graph),
+            gini_min=compute_gini(degrees[nodes_min.get_minority_mask()]),
+            gini_maj=compute_gini(degrees[nodes_min.get_majority_mask()])
         )
 
         # Put stats and JSON string into results queue
@@ -141,8 +149,9 @@ def main():
         processes.append(p)
 
     # Write incoming results to files
-    print(f"Starting to write results to {args.path_results}")
-    with open(args.path_results, 'w+', encoding="utf-8") as file:
+    path_file = os.path.join(args.path_results, "aggregate_statistics.csv")
+    print(f"Starting to write results to {path_file}")
+    with open(path_file, 'w+', encoding="utf-8") as file:
         csv_writer = csv.writer(file)
         # Write CSV header
         csv_writer.writerow(StatsResult.get_csv_fields())
