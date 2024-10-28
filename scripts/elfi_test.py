@@ -1,20 +1,41 @@
-# %%
+from typing import Any, Dict
+from argparse import ArgumentParser
+import os
 import elfi
 import matplotlib.pyplot as plt
 import numpy as np
 from netin.models import PATCHModel, CompoundLFM
 from patch.statistics import compute_gini, compute_ei, compute_mann_whitney
-from patch.constants import F, M
+from patch.constants import F, M, PATH_PLOTS
 
 N_SAMPLES = 1000
 
 N_SIM=1000
-N_TRUE = 10000
+N_TRUE = 5000
 LFM_TC = CompoundLFM.UNIFORM
 LFM_GLOBAL = CompoundLFM.PAH
 
 H_TRUE = 0.25
 TAU_TRUE = 0.75
+
+def parse_args() -> Dict[str, Any]:
+    """Parses the command line arguments.
+
+    Returns
+    -------
+    Dict[str, Any]
+        The parsed arguments.
+    """
+    ap = ArgumentParser("Aggregate Statistics")
+
+    # Add h_true, tau_true and n_samples as arguments
+    ap.add_argument("--h-true",
+                    default=H_TRUE, type=float)
+    ap.add_argument("--tau-true", default=TAU_TRUE, type=float)
+
+    d_a = ap.parse_args()
+
+    return d_a
 
 def simul(h: float, tau: float, N: int = None, random_state=None):
     model = PATCHModel(
@@ -31,6 +52,8 @@ def f_mw(g):
     return compute_mann_whitney(g)
 
 def main():
+    d_config = parse_args()
+
     elfi.set_client('multiprocessing')
 
     rng = np.random.RandomState(0)
@@ -38,7 +61,7 @@ def main():
     h_pr = elfi.Prior('uniform', 0, 1)
     tau_pr = elfi.Prior('uniform', 0, 1)
 
-    g_true = simul(h=H_TRUE, tau=TAU_TRUE, N=N_TRUE, random_state=rng)
+    g_true = simul(h=d_config.h_true, tau=d_config.tau_true, N=N_TRUE, random_state=rng)
     gini_true = f_gini(g_true)
     ei_true = f_ei(g_true)
     mw_true = f_mw(g_true)
@@ -51,7 +74,7 @@ def main():
     s_gini = elfi.Summary(elfi.tools.vectorize(f_gini), sim)
     s_ei = elfi.Summary(elfi.tools.vectorize(f_ei), sim)
     s_mw = elfi.Summary(elfi.tools.vectorize(f_mw), sim)
-    d = elfi.Distance('euclidean', s_gini, s_ei, s_mw)
+    d = elfi.Distance('cosine', s_gini, s_ei, s_mw)
 
     rej = elfi.Rejection(d)
 
@@ -59,11 +82,16 @@ def main():
 
     print(sample.summary())
 
-    plt.scatter(
-        sample.samples['h_pr'], sample.samples['tau_pr'], c=sample.outputs['d'])
+    plt.hist2d(
+        x=sample.samples['h_pr'], y=sample.samples['tau_pr'],
+        bins=20, range=[[0, 1], [0, 1]], density=True)
 
-    plt.axhline(TAU_TRUE, color="black", linestyle="--")
-    plt.axvline(H_TRUE, color="black", linestyle="--")
+    plt.axhline(d_config.tau_true, color="black", linestyle="--", label="True")
+    plt.axvline(d_config.h_true, color="black", linestyle="--")
+
+    plt.axhline(np.mean(sample.samples['tau_pr']), color="black", label="Estimated")
+    plt.axvline(np.mean(sample.samples['h_pr']), color="black")
+    plt.legend()
 
     plt.title(
         f"$ei_{{sc}}={ei_true:.2f},\\ gini={gini_true:.2f},\\ mw={mw_true:.2f}$")
@@ -71,7 +99,7 @@ def main():
     plt.ylabel('$\\tau$')
     plt.colorbar()
     plt.tight_layout()
-    plt.savefig('scatter.pdf')
+    plt.savefig(os.path.join(PATH_PLOTS, f'joint_f-{F}_m-{M}_h-true-{d_config.h_true}_tau-true-{d_config.tau_true}_n-sampl-{N_SAMPLES}_rej.pdf'))
 
 if __name__ == "__main__":
     main()
