@@ -1,3 +1,4 @@
 *
 !.gitignore
 !plots/.gitkeep
+!stats/
