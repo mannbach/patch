@@ -6,9 +6,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from netin.models import PATCHModel, CompoundLFM
 from patch.statistics import compute_gini, compute_ei, compute_mann_whitney
-from patch.constants import F, M, PATH_PLOTS
+from patch.constants import F, PATH_PLOTS
 
 N_SAMPLES = 1000
+M = 5
 
 N_SIM=1000
 N_TRUE = 5000
