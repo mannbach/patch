@@ -82,3 +82,20 @@ def compute_mann_whitney(net: Graph) -> float:
         degrees[nodes_min.get_majority_mask()]
 
     return sc.stats.mannwhitneyu(k_min, k_maj).statistic / (len(k_min) * len(k_maj))
+
+def get_cdf(data: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    """Computes the cumulative distribution function (CDF) of the data.
+
+    Parameters
+    ----------
+    data : np.ndarray
+        The data to compute the CDF for.
+
+    Returns
+    -------
+    Tuple[np.ndarray, np.ndarray]
+        The x and y values of the CDF.
+    """
+    sorted_data = np.sort(data)
+    yvals = np.arange(len(sorted_data)) / float(len(sorted_data))
+    return sorted_data, yvals
