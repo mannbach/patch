@@ -90,17 +90,37 @@ def create_file_name(
         f"r-{model_config.realization}{suffix}{file_ending}"
     )
 
+def create_net_subfolder_name(
+    N:int , m: int, f: float
+) -> str:
+    """Creates and returns a subfolder name string describing the
+    configuration given by the parameters.
+
+    Parameters
+    ----------
+    model_config : ModelConfig
+        The model configuration to create the subfolder name.
+
+    Returns
+    -------
+    str
+        The subfolder name string.
+    """
+    return (
+        f"N-{N}_m-{m}_f-{f}"
+    )
+
 def gen_nets_from_file(
-        path: str,
-        N:int,
-        m: int,
-        f: float,
-        l_homophily: List[float],
-        l_tau: List[float],
-        l_lfm_g: List[str],
-        l_lfm_t: List[str],
-        n_realizations: int,
-        **kwargs) -> Generator[None, Tuple[Graph, Dict[str, Any]], None]:
+    path: str,
+    N:int,
+    m: int,
+    f: float,
+    l_homophily: List[float],
+    l_tau: List[float],
+    l_lfm_g: List[str],
+    l_lfm_t: List[str],
+    n_realizations: int,
+    **kwargs) -> Generator[None, Tuple[ModelConfig, Graph], None]:
     """Generates networks and metadata tuples for all possible
     combinations of the specified parameters.
     Networks are read from json files in the specified folder path.
@@ -128,20 +148,24 @@ def gen_nets_from_file(
 
     Yields
     ------
-    Generator[None, Tuple[Graph, Dict[str, Any]], None]
-        Generator that yields tuples of networks and metadata dictionaries.
+    Generator[None, Tuple[ModelConfig, Graph], None]
+        Generator that yields tuples of networks and model configuration.
     """
     for h, tau, lfm_g, lfm_t, r in\
         product(l_homophily, l_tau, l_lfm_g, l_lfm_t, range(n_realizations)):
-        net, info =\
-            read_graph_from_json(os.path.join(path, create_file_name(
-                ModelConfig(
-                    N=N, m=m,
-                    f_m=f,
-                    homophily=h,
-                    tau=tau,
-                    lfm_global=lfm_g,
-                    lfm_tc=lfm_t,
-                    realization=r)
-                **kwargs)))
-        yield net, info
+        try:
+            net, info =\
+                read_graph_from_json(os.path.join(path, create_file_name(
+                    ModelConfig(
+                        N=N, m=m,
+                        f_m=f,
+                        homophily=h,
+                        tau=tau,
+                        lfm_global=lfm_g,
+                        lfm_tc=lfm_t,
+                        realization=r),
+                    **kwargs)))
+            yield net, info
+        except ValueError as e:
+            print((f"Error reading combination: {h}, {tau}, "
+                   f"{lfm_g}, {lfm_t}, {r}. Message:\n{e}\nSkipping"))
