@@ -8,7 +8,7 @@ F = 0.2
 N_REALIZATIONS = 100
 
 # Parameter options
-L_LFM_GLOBAL = [lfm.value for lfm in CompoundLFM]
+L_LFM_GLOBAL = [CompoundLFM.HOMOPHILY.value, CompoundLFM.PAH.value]
 L_LFM_LOCAL = [lfm.value for lfm in CompoundLFM]
 L_HOMOPHILY = [0.01, 0.25, 0.5, 0.75, 0.99]
 L_TAU = [0., 0.25, 0.5, 0.75, 1.]
