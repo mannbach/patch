@@ -5,7 +5,7 @@ import elfi
 import matplotlib.pyplot as plt
 import numpy as np
 from netin.models import PATCHModel, CompoundLFM
-from patch.statistics import compute_gini, compute_ei, compute_mann_whitney
+from patch.statistics import compute_gini, compute_ei, compute_mann_whitney, compute_clustering_coefficient
 from patch.constants import F, PATH_PLOTS
 
 N_SAMPLES = 1000
@@ -51,6 +51,8 @@ def f_ei(g):
     return (compute_ei(g) + 1) / 2
 def f_mw(g):
     return compute_mann_whitney(g)
+def f_ccf(g):
+    return compute_clustering_coefficient(g)
 
 def main():
     d_config = parse_args()
@@ -66,6 +68,7 @@ def main():
     gini_true = f_gini(g_true)
     ei_true = f_ei(g_true)
     mw_true = f_mw(g_true)
+    ccf_true = f_ccf(g_true)
 
     sim = elfi.Simulator(
         elfi.tools.vectorize(simul, dtype=False),
@@ -75,7 +78,9 @@ def main():
     s_gini = elfi.Summary(elfi.tools.vectorize(f_gini), sim)
     s_ei = elfi.Summary(elfi.tools.vectorize(f_ei), sim)
     s_mw = elfi.Summary(elfi.tools.vectorize(f_mw), sim)
-    d = elfi.Distance('cosine', s_gini, s_ei, s_mw)
+    s_ccf = elfi.Summary(elfi.tools.vectorize(f_ccf), sim)
+
+    d = elfi.Distance('cosine', s_gini, s_ei, s_mw, s_ccf)
 
     rej = elfi.Rejection(d)
 
@@ -87,15 +92,15 @@ def main():
         x=sample.samples['h_pr'], y=sample.samples['tau_pr'],
         bins=20, range=[[0, 1], [0, 1]], density=True)
 
-    plt.axhline(d_config.tau_true, color="black", linestyle="--", label="True")
-    plt.axvline(d_config.h_true, color="black", linestyle="--")
+    plt.axhline(d_config.tau_true, color="red", linestyle="--", label="True")
+    plt.axvline(d_config.h_true, color="red", linestyle="--")
 
-    plt.axhline(np.mean(sample.samples['tau_pr']), color="black", label="Estimated")
-    plt.axvline(np.mean(sample.samples['h_pr']), color="black")
+    plt.axhline(np.mean(sample.samples['tau_pr']), color="red", label="Estimated")
+    plt.axvline(np.mean(sample.samples['h_pr']), color="red")
     plt.legend()
 
     plt.title(
-        f"$ei_{{sc}}={ei_true:.2f},\\ gini={gini_true:.2f},\\ mw={mw_true:.2f}$")
+        f"$ei_{{sc}}={ei_true:.2f},gini={gini_true:.2f},mw={mw_true:.2f},ccf={ccf_true:.2f}$")
     plt.xlabel('$h$')
     plt.ylabel('$\\tau$')
     plt.colorbar()
