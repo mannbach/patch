@@ -47,7 +47,7 @@ class StatsResult:
     gini_maj: float
     json_data: str = None
 
-    _CSV_FIELDS_STATS = ("gini", "ei", "mann_whitney")
+    _CSV_FIELDS_STATS = ("gini", "ei", "mann_whitney", "gini_min", "gini_maj")
 
     @staticmethod
     def get_csv_fields() -> List[str]:
@@ -149,9 +149,8 @@ def main():
         processes.append(p)
 
     # Write incoming results to files
-    path_file = os.path.join(args.path_results, "aggregate_statistics.csv")
-    print(f"Starting to write results to {path_file}")
-    with open(path_file, 'w+', encoding="utf-8") as file:
+    print(f"Starting to write results to {args.path_results}")
+    with open(args.path_results, 'w+', encoding="utf-8") as file:
         csv_writer = csv.writer(file)
         # Write CSV header
         csv_writer.writerow(StatsResult.get_csv_fields())
