@@ -99,3 +99,29 @@ def get_cdf(data: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     sorted_data = np.sort(data)
     yvals = np.arange(len(sorted_data)) / float(len(sorted_data))
     return sorted_data, yvals
+
+def compute_clustering_coefficient(graph: Graph):
+    """Computes the clustering coefficient of the graph.
+
+    Parameters
+    ----------
+    graph : Graph
+        The graph to compute the clustering coefficient for.
+
+    Returns
+    -------
+    float
+        The clustering coefficient of the graph.
+    """
+    cc_nodes = np.zeros(len(graph))
+    for node in graph.nodes():
+        neighbors = list(graph.neighbors(node))
+        if len(neighbors) < 2:
+            continue
+        n_edges = 0
+        for i, u in enumerate(neighbors):
+            for v in neighbors[i+1:]:
+                if graph.has_edge(u, v):
+                    n_edges += 1
+        cc_nodes[node] = (2*n_edges) / (len(neighbors) * (len(neighbors) - 1))
+    return np.mean(cc_nodes)
