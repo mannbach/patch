@@ -14,7 +14,7 @@ from patch.constants import\
     STOP_SIGNAL, PATH_GRAPHS, PATH_STATISTICS
 from patch.io import read_graph_from_json
 from patch.model_config import ModelConfig
-from patch.statistics import compute_gini, compute_ei, compute_mann_whitney
+from patch.statistics import compute_gini, compute_gini_maj, compute_gini_min, compute_ei, compute_mann_whitney
 
 def parse_args() -> Dict[str, Any]:
     """Parses the command line arguments.
@@ -115,8 +115,8 @@ def work(queue_tasks: Queue, queue_results: Queue, folder_graphs: str):
             gini=compute_gini(degrees),
             ei=compute_ei(graph),
             mann_whitney=compute_mann_whitney(graph),
-            gini_min=compute_gini(degrees[nodes_min.get_minority_mask()]),
-            gini_maj=compute_gini(degrees[nodes_min.get_majority_mask()])
+            gini_min=compute_gini_min(graph),
+            gini_maj=compute_gini_maj(graph)
         )
 
         # Put stats and JSON string into results queue

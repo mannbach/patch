@@ -1,5 +1,4 @@
 from netin.models import CompoundLFM
-import matplotlib.pyplot as plt
 
 # Default values
 N = 5000
@@ -17,6 +16,8 @@ L_TAU = [0., 0.25, 0.5, 0.75, 1.]
 PATH_GRAPHS = "./data/graphs/"
 PATH_STATISTICS = "./output/stats/"
 PATH_PLOTS = "./output/plots/"
+PATH_APS = "./data/empirical/"
+PATH_POSTERIORS = "./output/posteriors/"
 
 # Computation
 STOP_SIGNAL = -1
@@ -43,3 +44,7 @@ MAP_CM_H = {
     L_HOMOPHILY[3]: "#fdb863",
     L_HOMOPHILY[4]: "#e66101"
 }
+
+# Inference
+N_SAMPLES = 1000
+N_NODES_SIM = 1000

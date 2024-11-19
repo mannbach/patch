@@ -58,6 +58,16 @@ def compute_gini(degrees: NodeVector) -> float:
 
     return (n + 1 - 2 * np.sum(cumx) / cumx[-1]) / n
 
+def compute_gini_min(graph: Graph) -> float:
+    degrees = graph.degrees()
+    nodes_min = graph.get_node_class(CLASS_ATTRIBUTE)
+    return compute_gini(degrees[nodes_min.get_minority_mask()])
+
+def compute_gini_maj(graph: Graph) -> float:
+    degrees = graph.degrees()
+    nodes_min = graph.get_node_class(CLASS_ATTRIBUTE)
+    return compute_gini(degrees[nodes_min.get_majority_mask()])
+
 def compute_mann_whitney(net: Graph) -> float:
     """Computes the Mann-Whitney U test statistic for the degree distribution of the minority and majority groups.
 
