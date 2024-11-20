@@ -6,14 +6,11 @@ import numpy as np
 
 from .statistics import compute_gini, compute_ei, compute_mann_whitney, compute_clustering_coefficient, compute_gini_maj, compute_gini_min
 
-def elfi_patch(
-        N: int, m: int, f_m: float,
-        lfm_global: CompoundLFM, lfm_tc: CompoundLFM,
-        random_state=None):
-    return lambda h, tau: PATCHModel(
-        N=N, f_m=f_m, m=m,
+def elfi_patch(N:int, f_m:float, m: int, lfm_global: CompoundLFM, lfm_tc: CompoundLFM, h: float, tau: float, random_state: np.random.RandomState) -> Graph:
+    return PATCHModel(
+        N=int(N), f_m=float(f_m), m=int(m),
         tau=float(tau), h_M=float(h), h_m=float(h),
-        lfm_global=lfm_global, lfm_tc=lfm_tc,
+        lfm_global=CompoundLFM[lfm_global], lfm_tc=CompoundLFM[lfm_tc],
         random_state=random_state).simulate()
 
 def elfi_gini(graph: Graph) -> float:

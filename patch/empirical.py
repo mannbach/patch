@@ -19,7 +19,8 @@ def read_graph(folder: str)\
             folder, "authorships.csv"), index_col=0)
     df_publications = pd.read_csv(
         os.path.join(folder, "publications.csv"),
-        index_col="id_publication")
+        index_col="id_publication",
+        parse_dates=["timestamp"])
     df_author_name = pd.read_csv(
         os.path.join(folder, "author_names.csv"),
         index_col="id_author_name")
@@ -31,7 +32,8 @@ def read_graph(folder: str)\
         df_authors["id_gender_nq"] != GENDER_UNKNOWN]
     df_authors[CLASS_ATTRIBUTE] = df_authors["id_gender_nq"]\
         .map(lambda g: MINORITY_VALUE if g == GENDER_FEMALE else MAJORITY_VALUE)
-    df_authors["index_new"] = range(len(df_authors))
+
+    df_publications = df_publications[df_publications["timestamp"].dt.year <= 1970]
 
     df_edges = df_authorships\
         .merge(df_publications,
@@ -44,8 +46,15 @@ def read_graph(folder: str)\
                left_on="id_author",
                right_index=True,
                how="inner")\
-        .sort_values(by=["timestamp"], ascending=True)\
-        .groupby("id_publication")
+        .sort_values(by=["timestamp"], ascending=True)
+
+    gb_edges = df_edges.groupby("id_publication")
+
+    idx_auth = set(df_edges["id_author"].unique())
+    df_authors = df_authors[
+        df_authors.index.isin(idx_auth)]
+
+    df_authors["index_new"] = range(len(df_authors))
 
     graph = Graph()
     nodes_min = BinaryClassNodeVector(
@@ -56,7 +65,7 @@ def read_graph(folder: str)\
         graph.add_node(author)
         nodes_min[author] = minority
 
-    for _, df_auth_pub in df_edges:
+    for _, df_auth_pub in gb_edges:
         for u, v in product(df_auth_pub["id_author"], repeat=2):
             if u != v:
                 u_new = df_authors.loc[u, "index_new"]
