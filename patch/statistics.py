@@ -4,9 +4,10 @@ from typing import Tuple
 
 from netin.utils.constants import CLASS_ATTRIBUTE
 from netin.graphs import Graph, NodeVector
-
 import numpy as np
 import scipy as sc
+
+from .temporal_edge_list import TemporalEdgeList
 
 def compute_ei(net: Graph) -> float:
     """Compute the EI index of the network as a measure of network segregation.
@@ -110,28 +111,67 @@ def get_cdf(data: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     yvals = np.arange(len(sorted_data)) / float(len(sorted_data))
     return sorted_data, yvals
 
-def compute_clustering_coefficient(graph: Graph):
-    """Computes the clustering coefficient of the graph.
+def compute_group_ccf(res: Tuple[Graph, TemporalEdgeList]) -> np.ndarray:
+    """Compute the clustering coefficient for each possible triangle combination based on the minority and majority groups.
 
     Parameters
     ----------
     graph : Graph
-        The graph to compute the clustering coefficient for.
+        The simulated network.
 
     Returns
     -------
-    float
-        The clustering coefficient of the graph.
+    np.ndarray
+        The clustering coefficients for each possible triangle combination.
+        Returns a list of clustering coefficients ordered by the number of minority nodes in the triangle:
+        0: mmm
+        1: mmM
+        2: mMm
+        3: Mmm
+        4: mMM
+        5: MmM
+        6: MMm
+        7: MMM
     """
-    cc_nodes = np.zeros(len(graph))
-    for node in graph.nodes():
-        neighbors = list(graph.neighbors(node))
-        if len(neighbors) < 2:
-            continue
-        n_edges = 0
-        for i, u in enumerate(neighbors):
-            for v in neighbors[i+1:]:
-                if graph.has_edge(u, v):
-                    n_edges += 1
-        cc_nodes[node] = (2*n_edges) / (len(neighbors) * (len(neighbors) - 1))
-    return np.mean(cc_nodes)
+    graph, t_edges = res
+    tri_cnts = np.zeros(8)
+    nodes_min = graph.get_node_class(CLASS_ATTRIBUTE)
+
+    for u, v in graph.edges():
+        t_uv = t_edges[(u, v)]
+        for w in graph.neighbors(u).intersection(graph.neighbors(v)):
+            t_vw = t_edges[(v, w)]
+            t_uw = t_edges[(u, w)]
+
+            a,b,c = None, None, None
+            if t_uv < t_vw < t_uw:
+                a,b,c = u,v,w
+            elif t_uv < t_uw < t_vw:
+                a,b,c = v,u,w
+            else:
+                continue
+
+            a_min, b_min, c_min = nodes_min[a], nodes_min[b], nodes_min[c]
+
+            tri_cnts[
+                0 if a_min and b_min and c_min else
+                1 if a_min and b_min and not c_min else
+                2 if a_min and not b_min and c_min else
+                3 if not a_min and b_min and c_min else
+                4 if a_min and not b_min and not c_min else
+                5 if not a_min and b_min and not c_min else
+                6 if not a_min and not b_min and c_min else
+                7] += 1
+
+    n_min = np.sum(nodes_min)
+    n_maj = len(nodes_min) - n_min
+
+    return tri_cnts / np.array([
+        n_min * (n_min - 1) * (n_min - 2),
+        n_min * (n_min - 1) * n_maj,
+        n_min * (n_min - 1) * n_maj,
+        n_min * (n_min - 1) * n_maj,
+        n_min * (n_maj - 1) * n_maj,
+        n_min * (n_maj - 1) * n_maj,
+        n_min * (n_maj - 1) * n_maj,
+        n_maj * (n_maj - 1) * (n_maj - 2)])
