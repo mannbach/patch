@@ -78,6 +78,10 @@ def main():
         print(f"\nRunning for decade `{decade}`...")
         model = elfi.ElfiModel()
 
+        if not os.path.exists(create_folder_name(args, decade)):
+            print(f"Creating folder `{create_folder_name(args, decade)}`...")
+            os.makedirs(create_folder_name(args, decade))
+
         h_prior = elfi.Prior('uniform', 0, 1, model=model, name="h")
         tau_prior = elfi.Prior('uniform', 0, 1, model=model, name="tau")
 
