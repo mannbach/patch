@@ -53,17 +53,17 @@ def plot_results(sample, args, decade):
     plt.ylabel('$\\tau$')
     plt.colorbar()
     plt.tight_layout()
-    file = f"{create_file_name(args, decade)}_posteriors.pdf"
+    file = os.path.join(create_folder_name(args, decade), "posteriors.pdf")
     print(f"Saving plot to `{file}`...")
     plt.savefig(file)
 
 def _choose_i(data: np.ndarray, i:int):
     return data[i]
 
-def create_file_name(args, decade: int):
+def create_folder_name(args, decade: int):
     return os.path.join(
         args.path_results,
-        f"{args.prefix}lfm-g-{args.lfm_global}_lfm-t-{args.lfm_tc}_d-{decade}")
+        f"{args.prefix}lfm-g-{args.lfm_global}_lfm-t-{args.lfm_tc}_d-{decade}/")
 
 def main():
     print("ELFI APS\nParsing args...")
@@ -134,13 +134,14 @@ def main():
         print("Summary results:")
         print(sample.summary())
 
-        print(f"\nAdaptive distance weights:")
+        print("\nAdaptive distance weights:")
         for i, weights in enumerate(sample.adaptive_distance_w):
             print(f"\tround {i + 1}, weights={weights}")
 
         plot_results(sample, args=args, decade=decade)
 
-        file_posteriors = f"{create_file_name(args, decade)}_posteriors.npz"
+        file_posteriors = os.path.join(
+            create_folder_name(args, decade), "posteriors.npz")
         print(f"Saved posteriors to `{file_posteriors}`...")
         np.savez(
             file=file_posteriors,
