@@ -33,6 +33,9 @@ def parse_args() -> Dict[str, Any]:
     ap.add_argument("-lfm-global", type=str, choices=L_LFM_GLOBAL)
     ap.add_argument("-lfm-tc", type=str, choices=L_LFM_LOCAL)
 
+    # Flag to store simulation data
+    ap.add_argument("--store-sim-data", action="store_true")
+
     ap.add_argument("--prefix", type=str, default="")
 
     d_a = ap.parse_args()
@@ -72,7 +75,7 @@ def main():
     print(f"Setting `n_processes` to {args.n_processes}")
     elfi.set_client('multiprocessing', num_processes=args.n_processes)
 
-    rng = np.random.RandomState(0)
+    np.random.seed(0)
 
     for decade in args.decades:
         print(f"\nRunning for decade `{decade}`...")
@@ -95,38 +98,47 @@ def main():
         f_m = np.mean(nodes_min)
         print(f"Read graph with {len(graph_aps)} nodes, {len(t_edges_aps) // 2} edges, and `f_m={f_m:.2f}`, `m={m}`")
 
-        summary_aps = {
-            k: f((graph_aps, t_edges_aps))\
-                for k, f in ELFISummaryFunctions()._asdict().items()
-        }
-        print("Summary statistics:")
-        print(summary_aps)
-
         print(f"Creating simulator (`N={N_NODES_SIM}, m={m},f_m={f_m:.2f}`)...")
         simulator = elfi.Simulator(
             elfi.tools.vectorize(
-                elfi_patch, constants=(0, 1, 2, 3, 4), dtype=False),
+                elfi_patch, # Simulator function
+                constants=(0, 1, 2, 3, 4), # Constant arguments
+                dtype=False), # Non-array dtype of simulation
             N_NODES_SIM, f_m, m,
             args.lfm_global, args.lfm_tc,
             h_prior, tau_prior,
+            name="simulator", # For later reference
             observed=((graph_aps, t_edges_aps)))
+
+        # Define summary statistics
         summary_f = [
             elfi.Summary(elfi.tools.vectorize(f), simulator, name=k)
             for k, f in ELFISummaryFunctions()._asdict().items()
         ]
-
         s_ccf = elfi.Summary(elfi.tools.vectorize(compute_group_ccf), simulator)
+        # CCF summaries need to be flattened
         for i in range(8):
             summary_f.append(
-                elfi.Summary(elfi.tools.vectorize(_choose_i, constants=(1,)), s_ccf, elfi.Constant(i, model=model), name=f"ccf_{i}")
+                elfi.Summary(
+                    elfi.tools.vectorize(_choose_i, constants=(1,)), # Choose the i-th element
+                    s_ccf, elfi.Constant(i, model=model), # Of the CCF summary
+                    name=f"ccf_{i}")
             )
+        print("Computing summary statistics for empirical graph:")
+        for s_f in summary_f:
+            print(f"\t`{s_f.name}`: "
+                  f"{s_f.generate(with_values={'simulator': (graph_aps, t_edges_aps)})}")
 
-        # distance = elfi.Distance('cosine', *summary_f)
-        # sampler = elfi.SMC(distance)
+        arraypool_summaries = elfi.ArrayPool(
+            [summary.name for summary in summary_f],
+            prefix=create_folder_name(args, decade))\
+                if args.store_sim_data else None
+        if arraypool_summaries:
+            print(f"Storing simulation data to `{arraypool_summaries.prefix}`...")
 
         distance = elfi.AdaptiveDistance(*summary_f)
         sampler = elfi.AdaptiveDistanceSMC(
-            distance)
+            distance, pool=arraypool_summaries)
 
         print("Running rejection sampling (this might take a while)...")
 
