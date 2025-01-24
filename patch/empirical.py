@@ -30,15 +30,6 @@ def read_graph(folder: str, decade: int, duration: int = 10)\
         os.path.join(folder, "authors.csv"),
         index_col="id_author")
 
-    df_authors = df_authors[df_authors["disambiguated"]]
-    df_authors = df_authors[
-        df_authors["id_gender_nq"] != GENDER_UNKNOWN]
-    df_authors[CLASS_ATTRIBUTE] = df_authors["id_gender_nq"]\
-        .map(lambda g: MINORITY_VALUE if g == GENDER_FEMALE else MAJORITY_VALUE)
-
-    df_publications = df_publications[
-        (df_publications["timestamp"].dt.year >= decade) & (df_publications["timestamp"].dt.year <= (decade + duration))]
-
     df_edges = df_authorships\
         .merge(df_publications,
                left_on="id_publication",
@@ -52,29 +43,35 @@ def read_graph(folder: str, decade: int, duration: int = 10)\
                how="inner")\
         .sort_values(by=["timestamp"], ascending=True)
 
+    # Filter out authors without disambiguation or unknown gender
+    df_edges = df_edges[df_edges["disambiguated"]]
+    df_edges = df_edges[
+        df_edges["id_gender_nq"] != GENDER_UNKNOWN]
 
     # Keep only authors who have published after decade + duration
     authors_active = df_edges.groupby("id_author")["timestamp"].max().dt.year >= (decade + duration)
+    authors_active = authors_active[authors_active].index
+    df_edges = df_edges[df_edges["id_author"].isin(authors_active)]
 
-    df_authors = df_authors[df_authors.index.isin(authors_active.index)]
-    df_authors = df_authors[authors_active]
+    # Filter out papers outside of decade
+    # This has to happen after filtering out authors because they rely on the papers
+    df_edges = df_edges[
+        (df_edges["timestamp"].dt.year >= decade)\
+            & (df_edges["timestamp"].dt.year < (decade + duration))]
 
-    # df_authors = df_authors[
-    #     df_edges.groupby("id_author")["timestamp"].max().dt.year >= (decade + duration)]
+    # Add minority attribute
+    df_authors = df_authors[df_authors.index.isin(authors_active)]
+    df_authors[CLASS_ATTRIBUTE] = df_authors["id_gender_nq"]\
+        .map(lambda g: MINORITY_VALUE if g == GENDER_FEMALE else MAJORITY_VALUE)
+
     map_auth_old_new = {}
     map_auth_new_group = {}
     id_auth = 0
-
-    df_edges = df_edges[df_edges["id_author"].isin(df_authors.index)]
 
     gb_edges = df_edges.groupby("id_publication")
 
     graph = Graph()
     edge_times = {}
-
-    # for author, minority in df_authors[['index_new', CLASS_ATTRIBUTE]].itertuples(index=False):
-    #     graph.add_node(author)
-    #     nodes_min[author] = minority
 
     time = -1
     time_old = None
