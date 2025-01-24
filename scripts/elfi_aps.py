@@ -125,13 +125,17 @@ def main():
                     name=f"ccf_{i}")
             )
         print("Computing summary statistics for empirical graph:")
-        for s_f in summary_f:
-            print(f"\t`{s_f.name}`: "
-                  f"{s_f.generate(with_values={'simulator': (graph_aps, t_edges_aps)})}")
+        s_observed = {
+            s_f.name: s_f.generate(with_values={'simulator': (graph_aps, t_edges_aps)})
+            for s_f in summary_f
+        }
+        for k, v in s_observed.items():
+            print(f"\t`{k}`: {v}")
 
         arraypool_summaries = elfi.ArrayPool(
             [summary.name for summary in summary_f],
-            prefix=create_folder_name(args, decade))\
+            prefix=create_folder_name(args, decade),
+            name="summary_stats_sim")\
                 if args.store_sim_data else None
         if arraypool_summaries:
             print(f"Storing simulation data to `{arraypool_summaries.prefix}`...")
@@ -145,7 +149,7 @@ def main():
         # sample = sampler.sample(
             # N_SAMPLES, [0.7, 0.2, 0.05])
         sample = sampler.sample(
-            N_SAMPLES, 7)
+            N_SAMPLES, 5)
 
         print("Summary results:")
         print(sample.summary())
@@ -164,7 +168,8 @@ def main():
             h=sample.samples["h"],
             tau=sample.samples["tau"],
             discrepancies=sample.discrepancies,
-            distance_weights=sample.adaptive_distance_w)
+            distance_weights=sample.adaptive_distance_w,
+            **s_observed)
 
 if __name__ == "__main__":
     main()
