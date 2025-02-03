@@ -10,7 +10,7 @@ from netin.models import PATCHModel
 import matplotlib.pyplot as plt
 
 from patch.constants import PATH_APS, PATH_POSTERIORS, PATH_PLOTS, N_SAMPLES, N_NODES_SIM, L_LFM_GLOBAL, L_LFM_LOCAL
-from patch.elfi import elfi_patch, compute_m, ELFISummaryFunctions, d_cosine
+from patch.elfi import elfi_patch, compute_m, ELFISummaryFunctions
 from patch.empirical import read_graph
 from patch.statistics import compute_group_ccf
 
