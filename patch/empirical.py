@@ -1,12 +1,11 @@
 from typing import Tuple
 import os
-from itertools import product
+from itertools import combinations
 
 from netin.graphs import BinaryClassNodeVector
 from netin.graphs import Graph
 from netin.utils.constants import MINORITY_VALUE, MAJORITY_VALUE, MINORITY_LABEL, MAJORITY_LABEL, CLASS_ATTRIBUTE
 import pandas as pd
-import networkx as nx
 
 from .temporal_edge_list import TemporalEdgeList
 
@@ -40,8 +39,7 @@ def read_graph(folder: str, decade: int, duration: int = 10)\
         .merge(df_authors,
                left_on="id_author",
                right_index=True,
-               how="inner")\
-        .sort_values(by=["timestamp"], ascending=True)
+               how="inner")
 
     # Filter out authors without disambiguation or unknown gender
     df_edges = df_edges[df_edges["disambiguated"]]
@@ -68,34 +66,42 @@ def read_graph(folder: str, decade: int, duration: int = 10)\
     map_auth_new_group = {}
     id_auth = 0
 
+    # Sort by timestamp and publication id
+    df_edges = df_edges\
+        .sort_values(by=["timestamp"],
+                    ascending=True)
     gb_edges = df_edges.groupby("id_publication")
 
     graph = Graph()
     edge_times = {}
 
-    time = -1
-    time_old = None
-    for _, df_auth_pub in gb_edges:
-        if len(df_auth_pub) == 1:
-            continue
-        tmp_curr = df_auth_pub["timestamp"].iloc[0]
-        for u, v in product(df_auth_pub["id_author"], repeat=2):
-            for x in u, v:
-                if not x in map_auth_old_new:
-                    map_auth_old_new[x] = id_auth
-                    map_auth_new_group[id_auth] = df_authors.loc[x, CLASS_ATTRIBUTE]
-                    graph.add_node(id_auth)
-                    id_auth += 1
+    for x in df_edges["id_author"].unique():
+        if not x in map_auth_old_new:
+            map_auth_old_new[x] = id_auth
+            map_auth_new_group[id_auth] = df_authors.loc[x, CLASS_ATTRIBUTE]
+            graph.add_node(id_auth)
+            id_auth += 1
 
+    time = -1
+    time_last = None
+    for id_publication in df_edges["id_publication"].unique():
+        df_pub = gb_edges.get_group(id_publication)
+        time_curr = df_pub["timestamp"].iloc[0]
+
+        if time_curr != time_last:
+            if time_last is not None:
+                assert time_last <= time_curr,\
+                    f"Assertion failed: time_old ({time_last}) > tmp_curr ({time_curr})"
+            time += 1
+            time_last = time_curr
+
+        for u, v in combinations(df_pub["id_author"], 2):
             u_new = map_auth_old_new[u]
             v_new = map_auth_old_new[v]
 
             if u_new != v_new:
                 if not graph.has_edge(u_new, v_new):
                     graph.add_edge(u_new, v_new)
-                    if time_old != tmp_curr:
-                        time += 1
-                        time_old = tmp_curr
                     edge_times[(u_new, v_new)] = time
                     edge_times[(v_new, u_new)] = time
 
