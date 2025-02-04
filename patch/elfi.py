@@ -1,4 +1,4 @@
-from typing import NamedTuple, Callable, Tuple, List, Dict
+from typing import NamedTuple, Callable, Tuple, List, Dict, Optional
 
 from netin.models import PATCHModel, CompoundLFM
 from netin.graphs import Graph
@@ -113,7 +113,8 @@ def compute_observed_summary_stats(
     }
     return s_observed
 
-def register_sampler(summary_f: List[elfi.Summary], pool: elfi.ArrayPool)\
+def register_sampler(summary_f: List[elfi.Summary],
+                     pool: Optional[elfi.ArrayPool] = None)\
         -> elfi.AdaptiveDistanceSMC:
     distance = elfi.AdaptiveDistance(*summary_f)
     sampler = elfi.AdaptiveDistanceSMC(
