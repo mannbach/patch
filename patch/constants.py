@@ -17,7 +17,7 @@ PATH_GRAPHS = "./data/graphs/"
 PATH_STATISTICS = "./output/stats/"
 PATH_PLOTS = "./output/plots/"
 PATH_APS = "./data/empirical/"
-PATH_POSTERIORS = "./output/posteriors/"
+PATH_INFERENCE = "./output/inference/"
 
 # Computation
 STOP_SIGNAL = -1

@@ -8,7 +8,7 @@ import numpy as np
 from netin.utils.constants import CLASS_ATTRIBUTE
 
 from patch.constants import (
-    PATH_POSTERIORS,
+    PATH_INFERENCE,
     N_SAMPLES, N_NODES_SIM,
     L_LFM_GLOBAL, L_LFM_LOCAL,
     F, M)
@@ -31,7 +31,7 @@ def parse_args() -> Dict[str, Any]:
     ap.add_argument("--prefix", type=str, default="")
 
     ap.add_argument("--path-results", "-pr",
-                    default=PATH_POSTERIORS, type=str)
+                    default=PATH_INFERENCE, type=str)
     ap.add_argument("--n-processes", default=1, type=int)
     # Flag to store simulation data
     ap.add_argument("--store-sim-data", action="store_true")

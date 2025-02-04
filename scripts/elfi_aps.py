@@ -7,7 +7,7 @@ import numpy as np
 from netin.utils.constants import CLASS_ATTRIBUTE
 
 from patch.constants import (
-    PATH_APS, PATH_POSTERIORS,
+    PATH_APS, PATH_INFERENCE,
     N_SAMPLES, N_NODES_SIM,
     L_LFM_GLOBAL, L_LFM_LOCAL)
 from patch.elfi import (
@@ -28,7 +28,7 @@ def parse_args() -> Dict[str, Any]:
     ap.add_argument("--path-aps", "-pg",
                     default=PATH_APS, type=str)
     ap.add_argument("--path-results", "-pr",
-                    default=PATH_POSTERIORS, type=str)
+                    default=PATH_INFERENCE, type=str)
     ap.add_argument("--decades", type=int, nargs="+")
     ap.add_argument("--n-processes", default=1, type=int)
 
