@@ -127,9 +127,9 @@ def main():
             l_obs = pool.map(worker_wrapper, jobs)
         l_nodes_min = [graph_obs.get_node_class(CLASS_ATTRIBUTE) for graph_obs, _ in l_obs]
 
-        m = max(2, np.median(
+        m = max(2, np.rint(np.median(
             [compute_m(graph_empirical=graph_obs)\
-             for graph_obs, _ in l_obs]))
+             for graph_obs, _ in l_obs])))
         f_m = np.mean(l_nodes_min)
 
         for lfm_global_inf, lfm_tc_inf in product(args.lfm_global_inf, args.lfm_tc_inf):
