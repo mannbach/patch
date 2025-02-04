@@ -36,27 +36,25 @@ def elfi_patch(
     )
 
     graph = model.simulate()
-    return graph, t_edges
+    return [(graph, t_edges)]
 
 def elfi_gini(res: Tuple[Graph, TemporalEdgeList]) -> float:
-    graph = res[0]
-    return compute_gini(graph.degrees())
+    return np.mean([compute_gini(graph.degrees()) for graph, _ in res])
 
 def elfi_ei(res: Tuple[Graph, TemporalEdgeList]):
-    graph = res[0]
-    return (compute_ei(graph) + 1) / 2
+    return np.mean([(compute_ei(graph) + 1) / 2 for graph, _ in res])
 
 def elfi_gini_maj(res: Tuple[Graph, TemporalEdgeList]) -> float:
-    graph = res[0]
-    return compute_gini_maj(graph)
+    return np.mean([compute_gini_maj(graph) for graph, _ in res])
 
 def elfi_gini_min(res: Tuple[Graph, TemporalEdgeList]) -> float:
-    graph = res[0]
-    return compute_gini_min(graph)
+    return np.mean([compute_gini_min(graph) for graph, _ in res])
 
 def elfi_mann_whitney(res: Tuple[Graph, TemporalEdgeList]) -> float:
-    graph = res[0]
-    return compute_mann_whitney(graph)
+    return np.mean([compute_mann_whitney(graph) for graph, _ in res])
+
+def elfi_ccf(res: Tuple[Graph, TemporalEdgeList]) -> np.ndarray:
+    return np.mean([compute_group_ccf((graph, t_edges)) for graph, t_edges in res], axis=0)
 
 def compute_m(graph_empirical: Graph) -> int:
     n_nodes = len(graph_empirical)
@@ -68,8 +66,7 @@ def d_cosine(*simulated, observed):
     return 1 - np.dot(simulated, observed) / (np.linalg.norm(simulated) * np.linalg.norm(observed))
 
 def create_elfi_simulator(
-        model_config: ModelConfig,
-        observed: Tuple[Graph, TemporalEdgeList]) -> elfi.Simulator:
+        model_config: ModelConfig) -> elfi.Simulator:
     model = elfi.ElfiModel()
     h_prior = elfi.Prior('uniform', 0, 1, model=model, name="h")
     tau_prior = elfi.Prior('uniform', 0, 1, model=model, name="tau")
@@ -83,11 +80,11 @@ def create_elfi_simulator(
         model_config.lfm_global.value, model_config.lfm_tc.value,
         h_prior, tau_prior,
         name="simulator", # For later reference
-        observed=observed)
+        )
 
     return simulator
 
-def register_summary_stats(
+def register_summary_stats_functions(
         simulator: elfi.Simulator) -> List[elfi.Summary]:
 
     # Define summary statistics
@@ -95,29 +92,32 @@ def register_summary_stats(
         elfi.Summary(elfi.tools.vectorize(f), simulator, name=k)
         for k, f in ELFISummaryFunctions()._asdict().items()
     ]
-    s_ccf = elfi.Summary(elfi.tools.vectorize(compute_group_ccf), simulator)
+    s_ccf = elfi.Summary(elfi.tools.vectorize(elfi_ccf), simulator)
     summary_f.append(
         elfi.Summary(_mean, s_ccf, name="mean_ccf")
     )
     return summary_f
 
-def compute_observed_summary_stats(
-        l_observed: List[Tuple[Graph, TemporalEdgeList]],
+def register_observed_summary_stats(
+        simulator: elfi.Simulator,
+        l_observations: List[Tuple[Graph, TemporalEdgeList]],
         summary_f: List[elfi.Summary]) -> Dict[str, float]:
-    s_observed = {
-        s_f.name: np.mean([s_f.generate(with_values={'simulator': observed})[0]
-                           for observed in l_observed])
-        for s_f in summary_f
+    simulator.model.observed = {
+                summary.name: summary.generate(with_values={'simulator': l_observations})\
+                    for summary in summary_f
     }
-    return s_observed
+    return simulator.model.observed
 
-def register_sampler(summary_f: List[elfi.Summary],
+def register_sampler(summary_sim: List[elfi.Summary],
                      pool: Optional[elfi.ArrayPool] = None)\
         -> elfi.AdaptiveDistanceSMC:
-    distance = elfi.AdaptiveDistance(*summary_f)
+    distance = elfi.AdaptiveDistance(*summary_sim)
     sampler = elfi.AdaptiveDistanceSMC(
         distance, pool=pool)
     return sampler
+
+def create_pool(summary_f: List[elfi.Summary]) -> elfi.OutputPool:
+    return elfi.OutputPool([s.name for s in summary_f])
 
 def _mean(data: np.ndarray):
     return np.mean(data, axis=1)

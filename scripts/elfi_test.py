@@ -18,8 +18,8 @@ from patch.constants import (
     F, M)
 from patch.elfi import (
     elfi_patch,
-    compute_m, create_elfi_simulator, register_summary_stats,
-    compute_observed_summary_stats, register_sampler)
+    compute_m, create_elfi_simulator, register_summary_stats_functions,
+    register_sampler, create_pool, register_observed_summary_stats)
 from patch.model_config import ModelConfig
 
 def parse_args() -> Dict[str, Any]:
@@ -78,7 +78,7 @@ def create_inf_folder_name(
     return (f"lfm-g-inf-{lfm_global_inf}_lfm-t-inf-{lfm_tc_inf}/")
 
 def worker_wrapper(kwargs):
-    return elfi_patch(**kwargs)
+    return elfi_patch(**kwargs)[0]
 
 def main():
     print("ELFI APS\nParsing args...")
@@ -123,7 +123,7 @@ def main():
                  "h": h_true,
                  "tau": tau_true,
                  "random_state": i}\
-                    for i in range(N_REALIZATIONS)]
+                    for i in range(3)]
         with Pool(args.n_processes) as pool:
             l_obs = pool.map(worker_wrapper, jobs)
         l_nodes_min = [graph_obs.get_node_class(CLASS_ATTRIBUTE) for graph_obs, _ in l_obs]
@@ -132,6 +132,7 @@ def main():
             [compute_m(graph_empirical=graph_obs)\
              for graph_obs, _ in l_obs]))
         f_m = np.mean(l_nodes_min)
+
         for lfm_global_inf, lfm_tc_inf in product(args.lfm_global_inf, args.lfm_tc_inf):
             _run +=1
             print(f"\t\tRun {_run}/{_n_combin}")
@@ -149,14 +150,22 @@ def main():
                 continue
 
             simulator = create_elfi_simulator(
-                model_config=model_config,
-                observed=l_obs)
+                model_config=model_config)
 
             # Define summary statistics
-            summary_f = register_summary_stats(simulator)
+            summary_f = register_summary_stats_functions(simulator)
+
+            # Compute summary statistics for observed graph and store them
+            print("\tComputing summary statistics for true graph:")
+            register_observed_summary_stats(
+                simulator=simulator,
+                l_observations=l_obs,
+                summary_f=summary_f
+            )
 
             sampler = register_sampler(
-            summary_f=summary_f)
+                summary_sim=summary_f,
+                pool=create_pool(summary_f))
             print("\t\tRunning sampling (this might take a while)...")
             # sample = sampler.sample(
                 # N_SAMPLES, [0.7, 0.2, 0.05])
@@ -181,13 +190,6 @@ def main():
                 discrepancies=sample.discrepancies,
                 distance_weights=sample.adaptive_distance_w)
 
-        print("\tComputing summary statistics for true graph:")
-        s_observed = compute_observed_summary_stats(
-            l_observed=l_obs,
-            summary_f=summary_f)
-        for k, v in s_observed.items():
-            print(f"\t`{k}`: {v}")
-
         file_true_summary = os.path.join(
             create_true_config_folder_path(
                 args=args,
@@ -199,7 +201,7 @@ def main():
         print(f"\tSaving summary statistics for true graph to `{file_true_summary}`...")
         np.savez(
             file=file_true_summary,
-            **s_observed)
+            **simulator.model.observed)
 
 if __name__ == "__main__":
     main()
