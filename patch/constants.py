@@ -49,3 +49,4 @@ MAP_CM_H = {
 # Inference
 N_SAMPLES = 1000
 N_NODES_SIM = 1000
+N_ROUNDS = 3

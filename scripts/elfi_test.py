@@ -3,7 +3,6 @@ from argparse import ArgumentParser
 import os
 from itertools import product
 from multiprocessing import Pool
-from functools import partial
 
 import elfi
 import numpy as np
@@ -14,7 +13,7 @@ from patch.constants import (
     N_SAMPLES, N_NODES_SIM,
     L_HOMOPHILY, L_TAU,
     L_LFM_GLOBAL, L_LFM_LOCAL,
-    N_REALIZATIONS,
+    N_REALIZATIONS, N_ROUNDS,
     F, M)
 from patch.elfi import (
     elfi_patch,
@@ -123,7 +122,7 @@ def main():
                  "h": h_true,
                  "tau": tau_true,
                  "random_state": i}\
-                    for i in range(3)]
+                    for i in range(N_REALIZATIONS)]
         with Pool(args.n_processes) as pool:
             l_obs = pool.map(worker_wrapper, jobs)
         l_nodes_min = [graph_obs.get_node_class(CLASS_ATTRIBUTE) for graph_obs, _ in l_obs]
@@ -170,7 +169,7 @@ def main():
             # sample = sampler.sample(
                 # N_SAMPLES, [0.7, 0.2, 0.05])
             sample = sampler.sample(
-                N_SAMPLES, 2)
+                N_SAMPLES, N_ROUNDS)
 
             file_posteriors = os.path.join(
                 create_true_config_folder_path(
