@@ -8,9 +8,11 @@ import numpy as np
 from netin.utils.constants import CLASS_ATTRIBUTE
 
 from patch.constants import (
-    PATH_INFERENCE,
+    PATH_INFERENCE_VALIDATION,
     N_SAMPLES, N_NODES_SIM,
+    L_HOMOPHILY, L_TAU,
     L_LFM_GLOBAL, L_LFM_LOCAL,
+    N_REALIZATIONS,
     F, M)
 from patch.elfi import (
     elfi_patch,
@@ -31,34 +33,36 @@ def parse_args() -> Dict[str, Any]:
     ap.add_argument("--prefix", type=str, default="")
 
     ap.add_argument("--path-results", "-pr",
-                    default=PATH_INFERENCE, type=str)
+                    default=PATH_INFERENCE_VALIDATION, type=str)
     ap.add_argument("--n-processes", default=1, type=int)
     # Flag to store simulation data
     ap.add_argument("--store-sim-data", action="store_true")
 
     # Add h_true, tau_true and n_samples as arguments
     ap.add_argument("--h-true",
-                    nargs="+", type=float)
+                    nargs="+", type=float, default=L_HOMOPHILY)
     ap.add_argument("--tau-true",
-                    nargs="+", type=float)
+                    nargs="+", type=float, default=L_TAU)
 
     ap.add_argument("-lfm-global-true", type=str, choices=L_LFM_GLOBAL)
     ap.add_argument("-lfm-tc-true", type=str, choices=L_LFM_LOCAL)
 
-    ap.add_argument("-lfm-global", type=str, choices=L_LFM_GLOBAL)
-    ap.add_argument("-lfm-tc", type=str, choices=L_LFM_LOCAL)
+    ap.add_argument("-lfm-global", type=str,
+        choices=L_LFM_GLOBAL, nargs="+", default=L_LFM_GLOBAL)
+    ap.add_argument("-lfm-tc", type=str,
+        choices=L_LFM_LOCAL, nargs="+", default=L_LFM_LOCAL)
 
     d_a = ap.parse_args()
 
     return d_a
 
-def create_folder_name(args, h: float, tau: float):
+def create_folder_name(args, h: float, tau: float, lfm_global: str, lfm_tc: str):
     return os.path.join(
         args.path_results,
         (f"{args.prefix}"
          f"lfm-g-true-{args.lfm_global_true}_lfm-t-true-{args.lfm_tc_true}_"
          f"h-true-{h}_tau-true-{tau}_"
-         f"lfm-g-{args.lfm_global}_lfm-t-{args.lfm_tc}_"
+         f"lfm-g-{lfm_global}_lfm-t-{lfm_tc}_"
          "/"))
 
 def main():
@@ -71,12 +75,29 @@ def main():
 
     np.random.seed(0)
 
-    for h, tau in product(args.h_true, args.tau_true):
-        print(f"Running for h={h}, tau={tau}")
+    _n_combin = len(args.h_true) * len(args.tau_true)\
+        * len(args.lfm_global) * len(args.lfm_tc)
+    print((
+        f"Running for a total of "
+        f"{_n_combin} combinations"))
+    for i, (h, tau, lfm_global, lfm_tc)\
+        in enumerate(product(args.h_true, args.tau_true, args.lfm_global, args.lfm_tc)):
+        print((f"\tRun {i + 1}/{_n_combin}\n"
+               f"\tRunning for h={h}, tau={tau}, lfm_global={lfm_global},"
+               f"lfm_tc={lfm_tc}..."))
+
+        try:
+            model_config = ModelConfig(
+                N=N_NODES_SIM, f_m=F, m=M,
+                realization=-1, homophily=-1, tau=-1, # Will be ignored for inference
+                lfm_global=lfm_global, lfm_tc=lfm_tc)
+        except ValueError as e:
+            print(f"Skipping combination: {e}")
+            continue
 
         graph_obs, t_edges_obs = elfi_patch(
             N=N_NODES_SIM, f_m=F, m=M,
-            lfm_global=args.lfm_global, lfm_tc=args.lfm_tc,
+            lfm_global=lfm_global, lfm_tc=lfm_tc,
             h=h, tau=tau, random_state=0
         )
         nodes_min = graph_obs.get_node_class(CLASS_ATTRIBUTE)
@@ -90,10 +111,7 @@ def main():
 
         print(f"\tCreating simulator (`N={N_NODES_SIM}, m={m},f_m={f_m:.2f}`)...")
         simulator = create_elfi_simulator(
-            model_config=ModelConfig(
-                N=N_NODES_SIM, f_m=f_m, m=m,
-                homophily=-1, tau=-1, # These will be ignored
-                lfm_global=args.lfm_global, lfm_tc=args.lfm_tc),
+            model_config=model_config,
             observed=(graph_obs, t_edges_obs))
 
                 # Define summary statistics
@@ -104,7 +122,7 @@ def main():
             l_observed=[(graph_obs, t_edges_obs)],
             summary_f=summary_f)
         for k, v in s_observed.items():
-            print(f"\t`{k}`: {v}")
+            print(f"\t\t`{k}`: {v}")
 
         sampler = register_sampler(
             summary_f=summary_f)
@@ -119,8 +137,10 @@ def main():
             print(f"\tround {i + 1}, weights={weights}")
 
         file_posteriors = os.path.join(
-            create_folder_name(args=args, h=h, tau=tau), "posteriors.npz")
-        print(f"Saved posteriors to `{file_posteriors}`...")
+            create_folder_name(
+                args=args, h=h, tau=tau, lfm_global=lfm_global, lfm_tc=lfm_tc),
+            "posteriors.npz")
+        print(f"\tSaved posteriors to `{file_posteriors}`...")
         np.savez(
             file=file_posteriors,
             h=sample.samples["h"],
