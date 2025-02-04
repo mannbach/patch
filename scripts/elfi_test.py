@@ -1,23 +1,22 @@
 from typing import Any, Dict
 from argparse import ArgumentParser
 import os
+from itertools import product
+
 import elfi
-import matplotlib.pyplot as plt
 import numpy as np
-from netin.models import PATCHModel, CompoundLFM
-from patch.statistics import compute_gini, compute_ei, compute_mann_whitney, compute_clustering_coefficient
-from patch.constants import F, PATH_PLOTS
+from netin.utils.constants import CLASS_ATTRIBUTE
 
-N_SAMPLES = 1000
-M = 5
-
-N_SIM=1000
-N_TRUE = 5000
-LFM_TC = CompoundLFM.UNIFORM
-LFM_GLOBAL = CompoundLFM.PAH
-
-H_TRUE = 0.25
-TAU_TRUE = 0.75
+from patch.constants import (
+    PATH_POSTERIORS,
+    N_SAMPLES, N_NODES_SIM,
+    L_LFM_GLOBAL, L_LFM_LOCAL,
+    F, M)
+from patch.elfi import (
+    elfi_patch,
+    compute_m, create_elfi_simulator, register_summary_stats,
+    compute_observed_summary_stats, register_sampler)
+from patch.model_config import ModelConfig
 
 def parse_args() -> Dict[str, Any]:
     """Parses the command line arguments.
@@ -29,83 +28,106 @@ def parse_args() -> Dict[str, Any]:
     """
     ap = ArgumentParser("Aggregate Statistics")
 
+    ap.add_argument("--prefix", type=str, default="")
+
+    ap.add_argument("--path-results", "-pr",
+                    default=PATH_POSTERIORS, type=str)
+    ap.add_argument("--n-processes", default=1, type=int)
+    # Flag to store simulation data
+    ap.add_argument("--store-sim-data", action="store_true")
+
     # Add h_true, tau_true and n_samples as arguments
     ap.add_argument("--h-true",
-                    default=H_TRUE, type=float)
-    ap.add_argument("--tau-true", default=TAU_TRUE, type=float)
+                    nargs="+", type=float)
+    ap.add_argument("--tau-true",
+                    nargs="+", type=float)
+
+    ap.add_argument("-lfm-global-true", type=str, choices=L_LFM_GLOBAL)
+    ap.add_argument("-lfm-tc-true", type=str, choices=L_LFM_LOCAL)
+
+    ap.add_argument("-lfm-global", type=str, choices=L_LFM_GLOBAL)
+    ap.add_argument("-lfm-tc", type=str, choices=L_LFM_LOCAL)
 
     d_a = ap.parse_args()
 
     return d_a
 
-def simul(h: float, tau: float, N: int = None, random_state=None):
-    model = PATCHModel(
-        N=N_SIM if N is None else N,
-        f_m=F, m=M, tau=float(tau), h_M=float(h), h_m=float(h), random_state=random_state, lfm_global=LFM_GLOBAL, lfm_tc=LFM_TC)
-    g = model.simulate()
-    return g
-
-def f_gini(g):
-    return compute_gini(g.degrees())
-def f_ei(g):
-    return (compute_ei(g) + 1) / 2
-def f_mw(g):
-    return compute_mann_whitney(g)
-def f_ccf(g):
-    return compute_clustering_coefficient(g)
+def create_folder_name(args, h: float, tau: float):
+    return os.path.join(
+        args.path_results,
+        (f"{args.prefix}"
+         f"lfm-g-true-{args.lfm_global_true}_lfm-t-true-{args.lfm_tc_true}_"
+         f"h-true-{h}_tau-true-{tau}_"
+         f"lfm-g-{args.lfm_global}_lfm-t-{args.lfm_tc}_"
+         "/"))
 
 def main():
-    d_config = parse_args()
+    print("ELFI APS\nParsing args...")
+    args = parse_args()
 
-    elfi.set_client('multiprocessing')
+    print(f"Setting `n_processes` to {args.n_processes}")
+    elfi.set_client('multiprocessing',
+                     num_processes=args.n_processes)
 
-    rng = np.random.RandomState(0)
+    np.random.seed(0)
 
-    h_pr = elfi.Prior('uniform', 0, 1)
-    tau_pr = elfi.Prior('uniform', 0, 1)
+    for h, tau in product(args.h_true, args.tau_true):
+        print(f"Running for h={h}, tau={tau}")
 
-    g_true = simul(h=d_config.h_true, tau=d_config.tau_true, N=N_TRUE, random_state=rng)
-    gini_true = f_gini(g_true)
-    ei_true = f_ei(g_true)
-    mw_true = f_mw(g_true)
-    ccf_true = f_ccf(g_true)
+        graph_obs, t_edges_obs = elfi_patch(
+            N=N_NODES_SIM, f_m=F, m=M,
+            lfm_global=args.lfm_global, lfm_tc=args.lfm_tc,
+            h=h, tau=tau, random_state=0
+        )
+        nodes_min = graph_obs.get_node_class(CLASS_ATTRIBUTE)
 
-    sim = elfi.Simulator(
-        elfi.tools.vectorize(simul, dtype=False),
-        h_pr, tau_pr,
-        observed=g_true)
+        m = max(2, compute_m(graph_empirical=graph_obs))
+        f_m = np.mean(nodes_min)
+        print((
+            f"\tSimulated observed graph with {len(graph_obs)} nodes, "
+            f"{len(t_edges_obs) // 2} edges, and "
+            f"`f_m={f_m:.2f}`, `m={m}`"))
 
-    s_gini = elfi.Summary(elfi.tools.vectorize(f_gini), sim)
-    s_ei = elfi.Summary(elfi.tools.vectorize(f_ei), sim)
-    s_mw = elfi.Summary(elfi.tools.vectorize(f_mw), sim)
-    s_ccf = elfi.Summary(elfi.tools.vectorize(f_ccf), sim)
+        print(f"\tCreating simulator (`N={N_NODES_SIM}, m={m},f_m={f_m:.2f}`)...")
+        simulator = create_elfi_simulator(
+            model_config=ModelConfig(
+                N=N_NODES_SIM, f_m=f_m, m=m,
+                homophily=-1, tau=-1, # These will be ignored
+                lfm_global=args.lfm_global, lfm_tc=args.lfm_tc),
+            observed=(graph_obs, t_edges_obs))
 
-    d = elfi.Distance('cosine', s_gini, s_ei, s_mw, s_ccf)
+                # Define summary statistics
+        summary_f = register_summary_stats(simulator)
 
-    rej = elfi.Rejection(d)
+        print("\tComputing summary statistics for empirical graph:")
+        s_observed = compute_observed_summary_stats(
+            l_observed=[(graph_obs, t_edges_obs)],
+            summary_f=summary_f)
+        for k, v in s_observed.items():
+            print(f"\t`{k}`: {v}")
 
-    sample = rej.sample(n_samples=N_SAMPLES)
+        sampler = register_sampler(
+            summary_f=summary_f)
+        print("\tRunning sampling (this might take a while)...")
+        # sample = sampler.sample(
+            # N_SAMPLES, [0.7, 0.2, 0.05])
+        sample = sampler.sample(
+            N_SAMPLES, 5)
 
-    print(sample.summary())
+        print("\nAdaptive distance weights:")
+        for i, weights in enumerate(sample.adaptive_distance_w):
+            print(f"\tround {i + 1}, weights={weights}")
 
-    plt.hist2d(
-        x=sample.samples['h_pr'], y=sample.samples['tau_pr'],
-        bins=20, range=[[0, 1], [0, 1]], density=True)
-
-    plt.axhline(d_config.tau_true, color="red", linestyle="--", label="True")
-    plt.axvline(d_config.h_true, color="red", linestyle="--")
-
-    plt.axhline(np.mean(sample.samples['tau_pr']), color="red", label="Estimated")
-    plt.axvline(np.mean(sample.samples['h_pr']), color="red")
-    plt.legend()
-
-    plt.title(
-        f"$ei_{{sc}}={ei_true:.2f},gini={gini_true:.2f},mw={mw_true:.2f},ccf={ccf_true:.2f}$")
-    plt.xlabel('$h$')
-    plt.ylabel('$\\tau$')
-    plt.colorbar()
-    plt.tight_layout()
-    plt.savefig(os.path.join(PATH_PLOTS, f'joint_f-{F}_m-{M}_h-true-{d_config.h_true}_tau-true-{d_config.tau_true}_n-sampl-{N_SAMPLES}_rej.pdf'))
+        file_posteriors = os.path.join(
+            create_folder_name(args=args, h=h, tau=tau), "posteriors.npz")
+        print(f"Saved posteriors to `{file_posteriors}`...")
+        np.savez(
+            file=file_posteriors,
+            h=sample.samples["h"],
+            tau=sample.samples["tau"],
+            discrepancies=sample.discrepancies,
+            distance_weights=sample.adaptive_distance_w,
+            **s_observed)
 
 if __name__ == "__main__":
     main()
