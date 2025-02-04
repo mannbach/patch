@@ -80,7 +80,7 @@ def create_elfi_simulator(
             constants=(0, 1, 2, 3, 4), # Constant arguments
             dtype=False), # Non-array dtype of simulation
         model_config.N, model_config.f_m, model_config.m,
-        model_config.args.lfm_global, model_config.args.lfm_tc,
+        model_config.lfm_global.value, model_config.lfm_tc.value,
         h_prior, tau_prior,
         name="simulator", # For later reference
         observed=observed)
@@ -104,8 +104,6 @@ def register_summary_stats(
 def compute_observed_summary_stats(
         l_observed: List[Tuple[Graph, TemporalEdgeList]],
         summary_f: List[elfi.Summary]) -> Dict[str, float]:
-
-    print("Computing summary statistics for empirical graph:")
     s_observed = {
         s_f.name: np.mean([s_f.generate(with_values={'simulator': observed})[0]
                            for observed in l_observed])
