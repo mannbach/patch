@@ -54,7 +54,8 @@ def main():
     args = parse_args()
 
     print(f"Setting `n_processes` to {args.n_processes}")
-    elfi.set_client('multiprocessing', num_processes=args.n_processes)
+    elfi.set_client('multiprocessing',
+                     num_processes=args.n_processes)
 
     np.random.seed(0)
 
