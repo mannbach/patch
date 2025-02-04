@@ -2,6 +2,8 @@ from typing import Any, Dict
 from argparse import ArgumentParser
 import os
 from itertools import product
+from multiprocessing import Pool
+from functools import partial
 
 import elfi
 import numpy as np
@@ -75,6 +77,9 @@ def create_inf_folder_name(
         lfm_global_inf: str, lfm_tc_inf: str):
     return (f"lfm-g-inf-{lfm_global_inf}_lfm-t-inf-{lfm_tc_inf}/")
 
+def worker_wrapper(kwargs):
+    return elfi_patch(**kwargs)
+
 def main():
     print("ELFI APS\nParsing args...")
     args = parse_args()
@@ -108,21 +113,25 @@ def main():
             print(f"\tSkipping combination: {e} ({_run} runs...)")
             continue
 
-        print("\tSimulating observed graph...")
-        graph_obs, t_edges_obs = elfi_patch(
-            N=N_NODES_SIM, f_m=F, m=M,
-            lfm_global=lfm_global_true, lfm_tc=lfm_tc_true,
-            h=h_true, tau=tau_true, random_state=0
-        )
-        nodes_min = graph_obs.get_node_class(CLASS_ATTRIBUTE)
+        print(f"\tSimulating observed graph ({N_REALIZATIONS} times)...")
+        l_obs = None
+        jobs = [{"N": N_NODES_SIM,
+                 "f_m": F,
+                 "m": M,
+                 "lfm_global": lfm_global_true,
+                 "lfm_tc": lfm_tc_true,
+                 "h": h_true,
+                 "tau": tau_true,
+                 "random_state": i}\
+                    for i in range(N_REALIZATIONS)]
+        with Pool(args.n_processes) as pool:
+            l_obs = pool.map(worker_wrapper, jobs)
+        l_nodes_min = [graph_obs.get_node_class(CLASS_ATTRIBUTE) for graph_obs, _ in l_obs]
 
-        m = max(2, compute_m(graph_empirical=graph_obs))
-        f_m = np.mean(nodes_min)
-        print((
-            f"\tSimulated observed graph with {len(graph_obs)} nodes, "
-            f"{len(t_edges_obs) // 2} edges, and "
-            f"`f_m={f_m:.2f}`, `m={m}`"))
-
+        m = max(2, np.median(
+            [compute_m(graph_empirical=graph_obs)\
+             for graph_obs, _ in l_obs]))
+        f_m = np.mean(l_nodes_min)
         for lfm_global_inf, lfm_tc_inf in product(args.lfm_global_inf, args.lfm_tc_inf):
             _run +=1
             print(f"\t\tRun {_run}/{_n_combin}")
@@ -141,7 +150,7 @@ def main():
 
             simulator = create_elfi_simulator(
                 model_config=model_config,
-                observed=(graph_obs, t_edges_obs))
+                observed=l_obs)
 
             # Define summary statistics
             summary_f = register_summary_stats(simulator)
@@ -174,7 +183,7 @@ def main():
 
         print("\tComputing summary statistics for true graph:")
         s_observed = compute_observed_summary_stats(
-            l_observed=[(graph_obs, t_edges_obs)],
+            l_observed=l_obs,
             summary_f=summary_f)
         for k, v in s_observed.items():
             print(f"\t`{k}`: {v}")
