@@ -1,12 +1,14 @@
-from typing import NamedTuple, Callable, Tuple
+from typing import NamedTuple, Callable, Tuple, List, Dict
 
 from netin.models import PATCHModel, CompoundLFM
 from netin.graphs import Graph
 from netin.utils.event_handling import Event
 import numpy as np
+import elfi
 
 from .temporal_edge_list import TemporalEdgeList
 from .statistics import compute_gini, compute_ei, compute_mann_whitney, compute_group_ccf, compute_gini_maj, compute_gini_min
+from .model_config import ModelConfig
 
 def elfi_patch(
         N:int, f_m:float, m: int,
@@ -64,6 +66,62 @@ def compute_m(graph_empirical: Graph) -> int:
 
 def d_cosine(*simulated, observed):
     return 1 - np.dot(simulated, observed) / (np.linalg.norm(simulated) * np.linalg.norm(observed))
+
+def create_elfi_simulator(
+        model_config: ModelConfig,
+        observed: Tuple[Graph, TemporalEdgeList]) -> elfi.Simulator:
+    model = elfi.ElfiModel()
+    h_prior = elfi.Prior('uniform', 0, 1, model=model, name="h")
+    tau_prior = elfi.Prior('uniform', 0, 1, model=model, name="tau")
+
+    simulator = elfi.Simulator(
+        elfi.tools.vectorize(
+            elfi_patch, # Simulator function
+            constants=(0, 1, 2, 3, 4), # Constant arguments
+            dtype=False), # Non-array dtype of simulation
+        model_config.N, model_config.f_m, model_config.m,
+        model_config.args.lfm_global, model_config.args.lfm_tc,
+        h_prior, tau_prior,
+        name="simulator", # For later reference
+        observed=observed)
+
+    return simulator
+
+def register_summary_stats(
+        simulator: elfi.Simulator) -> List[elfi.Summary]:
+
+    # Define summary statistics
+    summary_f = [
+        elfi.Summary(elfi.tools.vectorize(f), simulator, name=k)
+        for k, f in ELFISummaryFunctions()._asdict().items()
+    ]
+    s_ccf = elfi.Summary(elfi.tools.vectorize(compute_group_ccf), simulator)
+    summary_f.append(
+        elfi.Summary(_mean, s_ccf, name="mean_ccf")
+    )
+    return summary_f
+
+def compute_observed_summary_stats(
+        l_observed: List[Tuple[Graph, TemporalEdgeList]],
+        summary_f: List[elfi.Summary]) -> Dict[str, float]:
+
+    print("Computing summary statistics for empirical graph:")
+    s_observed = {
+        s_f.name: np.mean([s_f.generate(with_values={'simulator': observed})[0]
+                           for observed in l_observed])
+        for s_f in summary_f
+    }
+    return s_observed
+
+def register_sampler(summary_f: List[elfi.Summary], pool: elfi.ArrayPool)\
+        -> elfi.AdaptiveDistanceSMC:
+    distance = elfi.AdaptiveDistance(*summary_f)
+    sampler = elfi.AdaptiveDistanceSMC(
+        distance, pool=pool)
+    return sampler
+
+def _mean(data: np.ndarray):
+    return np.mean(data, axis=1)
 
 class ELFISummaryFunctions(NamedTuple):
     ei: Callable[[Graph, TemporalEdgeList], float] = elfi_ei
