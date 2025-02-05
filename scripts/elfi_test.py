@@ -122,7 +122,7 @@ def main():
                  "h": h_true,
                  "tau": tau_true,
                  "random_state": i}\
-                    for i in range(N_REALIZATIONS)]
+                    for i in range(3)]
         with Pool(args.n_processes) as pool:
             l_obs = pool.map(worker_wrapper, jobs)
         l_nodes_min = [graph_obs.get_node_class(CLASS_ATTRIBUTE) for graph_obs, _ in l_obs]
@@ -152,15 +152,8 @@ def main():
                 model_config=model_config)
 
             # Define summary statistics
-            summary_f = register_summary_stats_functions(simulator)
-
-            # Compute summary statistics for observed graph and store them
-            print("\tComputing summary statistics for true graph:")
-            register_observed_summary_stats(
-                simulator=simulator,
-                l_observations=l_obs,
-                summary_f=summary_f
-            )
+            summary_f = register_summary_stats_functions(
+                simulator, l_observations=l_obs)
 
             sampler = register_sampler(
                 summary_sim=summary_f,
@@ -200,7 +193,7 @@ def main():
         print(f"\tSaving summary statistics for true graph to `{file_true_summary}`...")
         np.savez(
             file=file_true_summary,
-            **simulator.model.observed)
+            **{summary.name: summary.observed for summary in summary_f})
 
 if __name__ == "__main__":
     main()

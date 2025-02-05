@@ -85,16 +85,21 @@ def create_elfi_simulator(
     return simulator
 
 def register_summary_stats_functions(
-        simulator: elfi.Simulator) -> List[elfi.Summary]:
+        simulator: elfi.Simulator,
+        l_observations: List[Tuple[Graph, TemporalEdgeList]]) -> List[elfi.Summary]:
 
     # Define summary statistics
     summary_f = [
-        elfi.Summary(elfi.tools.vectorize(f), simulator, name=k)
+        elfi.Summary(
+            elfi.tools.vectorize(f), simulator,
+            name=k,
+            observed=f(l_observations))
         for k, f in ELFISummaryFunctions()._asdict().items()
     ]
     s_ccf = elfi.Summary(elfi.tools.vectorize(elfi_ccf), simulator)
     summary_f.append(
-        elfi.Summary(_mean, s_ccf, name="mean_ccf")
+        elfi.Summary(_mean, s_ccf, name="mean_ccf",
+                     observed=np.mean(elfi_ccf(l_observations)))
     )
     return summary_f
 
@@ -119,8 +124,8 @@ def register_sampler(summary_sim: List[elfi.Summary],
 def create_pool(summary_f: List[elfi.Summary]) -> elfi.OutputPool:
     return elfi.OutputPool([s.name for s in summary_f])
 
-def _mean(data: np.ndarray):
-    return np.mean(data, axis=1)
+def _mean(data: np.ndarray, **kwargs):
+    return np.mean(data, axis=1, **kwargs)
 
 class ELFISummaryFunctions(NamedTuple):
     ei: Callable[[Graph, TemporalEdgeList], float] = elfi_ei
