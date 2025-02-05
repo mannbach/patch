@@ -194,6 +194,10 @@ def main():
         print(f"\tSaving summary statistics for true graph to `{file_true_summary}`...")
         np.savez(
             file=file_true_summary,
+            h_true=h_true,
+            tau_true=tau_true,
+            lfm_global_true=lfm_global_true,
+            lfm_tc_true=lfm_tc_true,
             **{summary.name: summary.observed for summary in summary_f})
 
 if __name__ == "__main__":
