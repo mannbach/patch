@@ -1,4 +1,4 @@
-from typing import NamedTuple, Callable, Tuple, List, Dict, Optional
+from typing import NamedTuple, Callable, Tuple, List, Optional
 
 from netin.models import PATCHModel, CompoundLFM
 from netin.graphs import Graph
@@ -7,7 +7,7 @@ import numpy as np
 import elfi
 
 from .temporal_edge_list import TemporalEdgeList
-from .statistics import compute_gini, compute_ei, compute_mann_whitney, compute_group_ccf, compute_gini_maj, compute_gini_min
+from .statistics import compute_gini, compute_ei, compute_mann_whitney, compute_group_ccf, compute_gini_maj, compute_gini_min, compute_ccf
 from .model_config import ModelConfig
 
 def elfi_patch(
@@ -96,22 +96,7 @@ def register_summary_stats_functions(
             observed=f(l_observations))
         for k, f in ELFISummaryFunctions()._asdict().items()
     ]
-    s_ccf = elfi.Summary(elfi.tools.vectorize(elfi_ccf), simulator)
-    summary_f.append(
-        elfi.Summary(_mean, s_ccf, name="mean_ccf",
-                     observed=np.mean(elfi_ccf(l_observations)))
-    )
     return summary_f
-
-def register_observed_summary_stats(
-        simulator: elfi.Simulator,
-        l_observations: List[Tuple[Graph, TemporalEdgeList]],
-        summary_f: List[elfi.Summary]) -> Dict[str, float]:
-    simulator.model.observed = {
-                summary.name: summary.generate(with_values={'simulator': l_observations})\
-                    for summary in summary_f
-    }
-    return simulator.model.observed
 
 def register_sampler(summary_sim: List[elfi.Summary],
                      pool: Optional[elfi.ArrayPool] = None)\
@@ -133,4 +118,4 @@ class ELFISummaryFunctions(NamedTuple):
     gini_min: Callable[[Graph, TemporalEdgeList], float] = elfi_gini_maj
     gini_maj: Callable[[Graph, TemporalEdgeList], float] = elfi_gini_min
     mann_whitney: Callable[[Graph, TemporalEdgeList], float] = elfi_mann_whitney
-    # group_ccf: Callable[[Graph, TemporalEdgeList], np.ndarray] = compute_group_ccf
+    ccf: Callable[[Graph, TemporalEdgeList], np.ndarray] = compute_ccf

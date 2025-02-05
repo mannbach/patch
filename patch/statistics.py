@@ -94,6 +94,34 @@ def compute_mann_whitney(net: Graph) -> float:
 
     return sc.stats.mannwhitneyu(k_min, k_maj).statistic / (len(k_min) * len(k_maj))
 
+def compute_ccf(graph: Graph) -> np.ndarray:
+    degrees = graph.degrees()
+    forward = {}
+    for u in graph.nodes():
+        forward[u] = {v for v in graph.neighbors(u)\
+            if (degrees[u] < degrees[v]) or (degrees[u] == degrees[v] and u < v)}
+
+    t_count = 0
+    for u in graph.nodes():
+        for v in forward[u]:
+            common = forward[u].intersection(forward[v])
+            t_count += len(common)
+
+    # Count total number of connected triplets in the graph.
+    total_triplets = 0
+    for u in graph.nodes():
+        k = degrees[u]
+        if k >= 2:
+            total_triplets += k * (k - 1) / 2  # number of triplets centered at u
+
+    if total_triplets == 0:
+        return 0.0
+
+    # Global clustering coefficient:
+    global_clustering = (3 * t_count) / total_triplets
+    return global_clustering
+
+
 def get_cdf(data: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """Computes the cumulative distribution function (CDF) of the data.
 
