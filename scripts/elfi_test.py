@@ -18,7 +18,7 @@ from patch.constants import (
 from patch.elfi import (
     elfi_patch,
     compute_m, create_elfi_simulator, register_summary_stats_functions,
-    register_sampler, create_pool, register_observed_summary_stats)
+    register_sampler, create_pool)
 from patch.model_config import ModelConfig
 
 def parse_args() -> Dict[str, Any]:
