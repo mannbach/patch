@@ -122,7 +122,7 @@ def main():
                  "h": h_true,
                  "tau": tau_true,
                  "random_state": i}\
-                    for i in range(3)]
+                    for i in range(N_REALIZATIONS)]
         with Pool(args.n_processes) as pool:
             l_obs = pool.map(worker_wrapper, jobs)
         l_nodes_min = [graph_obs.get_node_class(CLASS_ATTRIBUTE) for graph_obs, _ in l_obs]
