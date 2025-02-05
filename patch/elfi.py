@@ -38,22 +38,22 @@ def elfi_patch(
     graph = model.simulate()
     return [(graph, t_edges)]
 
-def elfi_gini(res: Tuple[Graph, TemporalEdgeList]) -> float:
+def elfi_gini(res: List[Tuple[Graph, TemporalEdgeList]]) -> float:
     return np.mean([compute_gini(graph.degrees()) for graph, _ in res])
 
-def elfi_ei(res: Tuple[Graph, TemporalEdgeList]):
+def elfi_ei(res: List[Tuple[Graph, TemporalEdgeList]]):
     return np.mean([(compute_ei(graph) + 1) / 2 for graph, _ in res])
 
-def elfi_gini_maj(res: Tuple[Graph, TemporalEdgeList]) -> float:
+def elfi_gini_maj(res: List[Tuple[Graph, TemporalEdgeList]]) -> float:
     return np.mean([compute_gini_maj(graph) for graph, _ in res])
 
-def elfi_gini_min(res: Tuple[Graph, TemporalEdgeList]) -> float:
+def elfi_gini_min(res: List[Tuple[Graph, TemporalEdgeList]]) -> float:
     return np.mean([compute_gini_min(graph) for graph, _ in res])
 
-def elfi_mann_whitney(res: Tuple[Graph, TemporalEdgeList]) -> float:
+def elfi_mann_whitney(res: List[Tuple[Graph, TemporalEdgeList]]) -> float:
     return np.mean([compute_mann_whitney(graph) for graph, _ in res])
 
-def elfi_ccf(res: Tuple[Graph, TemporalEdgeList]) -> np.ndarray:
+def elfi_ccf(res: List[Tuple[Graph, TemporalEdgeList]]) -> np.ndarray:
     return np.mean([compute_group_ccf((graph, t_edges)) for graph, t_edges in res], axis=0)
 
 def compute_m(graph_empirical: Graph) -> int:
