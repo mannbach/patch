@@ -132,6 +132,7 @@ def main():
              for graph_obs, _ in l_obs])))
         f_m = np.mean(l_nodes_min)
 
+        print("Starting inference...")
         for lfm_global_inf, lfm_tc_inf in product(args.lfm_global_inf, args.lfm_tc_inf):
             _run +=1
             print(f"\t\tRun {_run}/{_n_combin}")
