@@ -1,6 +1,6 @@
 """Scripts to compute aggregate inequality network statistics.
 """
-from typing import Tuple
+from typing import Tuple, Dict, Set
 
 from netin.utils.constants import CLASS_ATTRIBUTE
 from netin.graphs import Graph, NodeVector
@@ -94,27 +94,54 @@ def compute_mann_whitney(net: Graph) -> float:
 
     return sc.stats.mannwhitneyu(k_min, k_maj).statistic / (len(k_min) * len(k_maj))
 
-def compute_ccf(graph: Graph) -> np.ndarray:
+def _prepare_forward_neighbors(graph: Graph) -> Dict[int, Set[int]]:
+    """Prepares a dictionary of forward neighbors for each node in the graph.
+
+    Parameters
+    ----------
+    graph : Graph
+        The simulated network.
+
+    Returns
+    -------
+    Dict[int, Set[int]]
+        A dictionary of forward neighbors for each node in the graph.
+    """
     degrees = graph.degrees()
     forward = {}
     for u in graph.nodes():
         forward[u] = {v for v in graph.neighbors(u)\
             if (degrees[u] < degrees[v]) or (degrees[u] == degrees[v] and u < v)}
+    return forward
 
-    t_count = 0
+def compute_ccf(graph: Graph, typed: bool = False) -> np.ndarray:
+    degrees = graph.degrees()
+    forward = _prepare_forward_neighbors(graph)
+    nodes_min = graph.get_node_class(CLASS_ATTRIBUTE)
+
+    t_count = np.zeros(4 if typed else 1)
     for u in graph.nodes():
         for v in forward[u]:
-            common = forward[u].intersection(forward[v])
-            t_count += len(common)
+            for w in forward[u].intersection(forward[v]):
+                t_count[np.sum(nodes_min[(u,v,w)]) if typed else 0] += 1
 
     # Count total number of connected triplets in the graph.
-    total_triplets = 0
+    total_triplets = np.zeros_like(t_count)
     for u in graph.nodes():
         k = degrees[u]
         if k >= 2:
-            total_triplets += k * (k - 1) / 2  # number of triplets centered at u
+            if typed:
+                u_min = nodes_min[u]
+                k_min = np.sum(nodes_min[forward[u]])
+                k_maj = k - k_min
 
-    if total_triplets == 0:
+                total_triplets[u_min + 2] += k_min * (k_min - 1) / 2  # number of triplets centered at u
+                total_triplets[u_min + 1] += k_min * k_maj  # number of triplets centered at u
+                total_triplets[u_min] += k_maj * k_maj  # number of triplets centered at u
+            else:
+                total_triplets[0] += k * (k - 1) / 2  # number of triplets centered at u
+
+    if not np.any(total_triplets != 0):
         return 0.0
 
     # Global clustering coefficient:
