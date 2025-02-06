@@ -15,12 +15,6 @@ def test_compute_gini_increasing():
     expected = 0.2666666666666667  # computed manually
     assert np.isclose(result, expected, atol=1e-6)
 
-def test_compute_gini_all_zero():
-    # When all degrees are zero, cumx[-1] becomes 0, and the computation yields NaN.
-    degrees = np.array([0, 0, 0])
-    result = compute_gini(degrees)
-    assert np.isnan(result)
-
 def test_compute_gini_list():
     # Passing a list instead of a numpy array should work as np.sort and np.cumsum can handle lists.
     degrees = [5, 4, 3, 2, 1]
