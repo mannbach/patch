@@ -1,4 +1,5 @@
 from netin.models import CompoundLFM
+import matplotlib.pyplot as plt
 
 # Default values
 N = 5000
@@ -44,6 +45,12 @@ MAP_CM_H = {
     L_HOMOPHILY[2]: "#b0b0b0",
     L_HOMOPHILY[3]: "#fdb863",
     L_HOMOPHILY[4]: "#e66101"
+}
+MAP_MODEL_COLOR = {
+    (CompoundLFM.HOMOPHILY.value, CompoundLFM.UNIFORM.value): plt.cm.get_cmap("tab20")(0),
+    (CompoundLFM.HOMOPHILY.value, CompoundLFM.HOMOPHILY.value): plt.cm.get_cmap("tab20")(1),
+    (CompoundLFM.PAH.value, CompoundLFM.UNIFORM.value): plt.cm.get_cmap("tab20")(2),
+    (CompoundLFM.PAH.value, CompoundLFM.PAH.value): plt.cm.get_cmap("tab20")(3),
 }
 
 # Inference
