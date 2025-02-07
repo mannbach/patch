@@ -54,7 +54,7 @@ def elfi_mann_whitney(res: List[Tuple[Graph, TemporalEdgeList]]) -> float:
     return np.mean([compute_mann_whitney(graph) for graph, _ in res])
 
 def elfi_ccf(res: List[Tuple[Graph, TemporalEdgeList]]) -> np.ndarray:
-    return np.mean([compute_ccf(graph) for graph, _ in res])
+    return np.mean([compute_ccf(graph)[0] for graph, _ in res])
 
 def compute_m(graph_empirical: Graph) -> int:
     n_nodes = len(graph_empirical)
