@@ -135,11 +135,11 @@ def compute_ccf(graph: Graph, typed: bool = False) -> np.ndarray:
                 k_min = np.sum(nodes_min[forward[u]])
                 k_maj = k - k_min
 
-                total_triplets[u_min + 2] += k_min * (k_min - 1) / 2  # number of triplets centered at u
-                total_triplets[u_min + 1] += k_min * k_maj  # number of triplets centered at u
-                total_triplets[u_min] += k_maj * k_maj  # number of triplets centered at u
+                total_triplets[u_min + 2] += k_min * (k_min - 1) / 2
+                total_triplets[u_min + 1] += k_min * k_maj
+                total_triplets[u_min] += k_maj * (k_maj - 1) / 2.
             else:
-                total_triplets[0] += k * (k - 1) / 2  # number of triplets centered at u
+                total_triplets[0] += k * (k - 1) / 2
 
     if not np.any(total_triplets != 0):
         return 0.0
