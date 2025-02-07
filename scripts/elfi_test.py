@@ -38,6 +38,7 @@ def parse_args() -> Dict[str, Any]:
     ap.add_argument("--n-processes", default=1, type=int)
     # Flag to store simulation data
     ap.add_argument("--store-sim-data", action="store_true")
+    ap.add_argument("--n-rounds-smc", default=N_ROUNDS, type=int)
 
     # Add h_true, tau_true and n_samples as arguments
     ap.add_argument("--h-true",
@@ -163,7 +164,7 @@ def main():
             # sample = sampler.sample(
                 # N_SAMPLES, [0.7, 0.2, 0.05])
             sample = sampler.sample(
-                N_SAMPLES, N_ROUNDS)
+                N_SAMPLES, args.n_rounds_smc)
 
             file_posteriors = os.path.join(
                 create_true_config_folder_path(
