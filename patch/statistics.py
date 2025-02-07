@@ -142,7 +142,7 @@ def compute_ccf(graph: Graph, typed: bool = False) -> np.ndarray:
                 total_triplets[0] += k * (k - 1) / 2
 
     if not np.any(total_triplets != 0):
-        return 0.0
+        return np.zeros(1)
 
     # Global clustering coefficient:
     global_clustering = (3 * t_count) / total_triplets
