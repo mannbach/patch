@@ -78,15 +78,6 @@ def main():
             f"{len(t_edges_aps) // 2} edges, and "
             f"`f_m={f_m:.2f}`, `m={m}`"))
         for lfm_global_inf, lfm_tc_inf in product(args.lfm_global, args.lfm_tc):
-            folder_name = create_folder_name(
-                args,
-                lfm_global=lfm_global_inf,
-                lfm_tc=lfm_tc_inf,
-                decade=decade)
-            if not os.path.exists(folder_name):
-                print(f"Creating folder `{folder_name}`...")
-                os.makedirs(folder_name)
-
             print((
                 f"\t\tCreating simulator (`N={N_NODES_SIM}, m={m}, f_m={f_m:.2f}, "
                 f"lfm_global={lfm_global_inf}, lfm_tc={lfm_tc_inf}`)..."))
@@ -101,6 +92,15 @@ def main():
                 continue
             simulator = create_elfi_simulator(
                 model_config=model_config)
+
+            folder_name = create_folder_name(
+                args,
+                lfm_global=lfm_global_inf,
+                lfm_tc=lfm_tc_inf,
+                decade=decade)
+            if not os.path.exists(folder_name):
+                print(f"Creating folder `{folder_name}`...")
+                os.makedirs(folder_name)
 
             # Define summary statistics
             summary_f = register_summary_stats_functions(
