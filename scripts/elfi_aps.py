@@ -139,6 +139,8 @@ def main():
                 tau=sample.samples["tau"],
                 discrepancies=sample.discrepancies,
                 distance_weights=sample.adaptive_distance_w,
+                f_m=f_m,
+                m=m,
                 **{summary.name: summary.observed for summary in summary_f})
 
 if __name__ == "__main__":
