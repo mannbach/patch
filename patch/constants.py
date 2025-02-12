@@ -21,6 +21,10 @@ PATH_APS = "./data/empirical/"
 PATH_INFERENCE = "./output/inference/"
 PATH_INFERENCE_VALIDATION = "./output/inference/validation/"
 
+# Empirical
+APS = "aps"
+DBLP = "dblp"
+
 # Computation
 STOP_SIGNAL = -1
 
