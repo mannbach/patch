@@ -1,13 +1,14 @@
-from typing import Tuple
+from typing import Tuple, Optional
 import os
 from itertools import combinations
 
 from netin.graphs import BinaryClassNodeVector
 from netin.graphs import Graph
-from netin.utils.constants import MINORITY_VALUE, MAJORITY_VALUE, MINORITY_LABEL, MAJORITY_LABEL, CLASS_ATTRIBUTE, APS, DBLP
+from netin.utils.constants import MINORITY_VALUE, MAJORITY_VALUE, MINORITY_LABEL, MAJORITY_LABEL, CLASS_ATTRIBUTE
 import pandas as pd
 
 from .temporal_edge_list import TemporalEdgeList
+from .constants import APS, DBLP, PATH_APS, PATH_DBLP
 
 GENDER_UNKNOWN = 0
 GENDER_FEMALE = 1
@@ -16,11 +17,20 @@ GENDER_MALE = 2
 GENDER_UNKNOWN_DBLP = '-'
 GENDER_FEMALE_DBLP = 'gf'
 
-def read_graph(source: str, folder: str, decade: int, duration: int = 10) -> Tuple[Graph, TemporalEdgeList]:
+def read_graph(
+        source: str, decade: int,
+        duration: int = 10,
+        folder: Optional[str] = None) -> Tuple[Graph, TemporalEdgeList]:
     if source == APS:
-        return read_graph_aps(folder, decade, duration)
+        return read_graph_aps(
+            folder=folder or PATH_APS,
+            decade=decade,
+            duration=duration)
     if source == DBLP:
-        return read_graph_dblp(folder, decade, duration)
+        return read_graph_dblp(
+            folder=folder or PATH_DBLP,
+            decade=decade,
+            duration=duration)
     raise ValueError(f"Unknown source: {source}")
 
 def read_graph_dblp(folder: str, decade: int, duration: int = 10)\
@@ -33,33 +43,28 @@ def read_graph_dblp(folder: str, decade: int, duration: int = 10)\
         os.path.join(folder, "out.dblp_coauthor"),
         skiprows=1,
         sep=r"\s+",
-        names=['author_id1', 'author_id2', 'weight', 'timestamp'],
-        parse_dates=['timestamp'])
+        names=['author_id1', 'author_id2', 'weight', 'timestamp'])
 
-    # Join author information
-    df_edges = df_edges\
-        .merge(df_authors[df_authors['gender'] != GENDER_UNKNOWN_DBLP],
-                left_on='author_id1',
-                right_index=True,
-                how="inner")\
-        .merge(df_authors[df_authors['gender'] != GENDER_UNKNOWN_DBLP],
-                left_on='author_id2',
-                right_index=True,
-                suffixes=('_1', '_2'))
+    df_edges["timestamp"] = pd.to_datetime(df_edges["timestamp"], unit="s")
 
     # Keep only authors who have published after decade + duration
-    authors_active_1 = df_edges.groupby("author_id_1")["timestamp"].max()
-    authors_active_2 = df_edges.groupby("author_id_2")["timestamp"].max()
-    authors_active = authors_active_1.combine(authors_active_2, max)\
-        .dt.year >= (decade + duration)
+    authors_active_1 = df_edges.groupby("author_id1")["timestamp"].max().dt.year >= (decade + duration)
+    authors_active_2 = df_edges.groupby("author_id2")["timestamp"].max().dt.year >= (decade + duration)
+    authors_active = authors_active_1 | authors_active_2
     authors_active = authors_active[authors_active].index
+
     df_edges = df_edges[
-        df_edges["author_id_1"].isin(authors_active)\
-            & df_edges["author_id_2"].isin(authors_active)]
+        df_edges["author_id1"].isin(authors_active)\
+            & df_edges["author_id2"].isin(authors_active)]
 
     df_edges = df_edges[
         (df_edges["timestamp"].dt.year >= decade)\
             & (df_edges["timestamp"].dt.year < (decade + duration))]
+
+    authors_active = pd.concat([
+        df_edges["author_id1"],
+        df_edges["author_id2"]],
+        axis=0).unique()
 
     df_authors = df_authors[df_authors.index.isin(authors_active)]
     df_authors[CLASS_ATTRIBUTE] = df_authors["gender"]\
@@ -69,6 +74,8 @@ def read_graph_dblp(folder: str, decade: int, duration: int = 10)\
     map_auth_new_group = {}
     id_auth = 0
     graph = Graph()
+
+    print(f"Number of authors: {len(authors_active)}")
     for x in authors_active:
         if not x in map_auth_old_new:
             map_auth_old_new[x] = id_auth
@@ -82,6 +89,7 @@ def read_graph_dblp(folder: str, decade: int, duration: int = 10)\
     time = -1
     time_last = None
     edge_times = {}
+    print(f"Number of edges: {len(df_edges)}")
     for _, row in df_edges.iterrows():
         time_curr = row["timestamp"]
         if time_curr != time_last:
@@ -91,8 +99,8 @@ def read_graph_dblp(folder: str, decade: int, duration: int = 10)\
             time += 1
             time_last = time_curr
 
-        u = map_auth_old_new[row["author_id_1"]]
-        v = map_auth_old_new[row["author_id_2"]]
+        u = map_auth_old_new[row["author_id1"]]
+        v = map_auth_old_new[row["author_id2"]]
         if u != v:
             if not graph.has_edge(u, v):
                 graph.add_edge(u, v)

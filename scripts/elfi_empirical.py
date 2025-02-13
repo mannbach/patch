@@ -8,10 +8,10 @@ import numpy as np
 from netin.utils.constants import CLASS_ATTRIBUTE
 
 from patch.constants import (
-    PATH_APS, PATH_INFERENCE,
+    PATH_INFERENCE,
     N_SAMPLES, N_NODES_SIM,
     L_LFM_GLOBAL, L_LFM_LOCAL,
-    N_ROUNDS)
+    N_ROUNDS, APS, DBLP)
 from patch.elfi import (
     compute_m, create_elfi_simulator,
     register_summary_stats_functions,
@@ -28,8 +28,8 @@ def parse_args() -> Dict[str, Any]:
         The parsed arguments.
     """
     ap = ArgumentParser("Aggregate Statistics")
-    ap.add_argument("--path-aps", "-pg",
-                    default=PATH_APS, type=str)
+    ap.add_argument("--source", "-s", type=str, choices=[APS, DBLP])
+    ap.add_argument("--path-source", "-ps", type=str, default=None)
     ap.add_argument("--path-results", "-pr",
                     default=PATH_INFERENCE, type=str)
     ap.add_argument("--decades", type=int, nargs="+")
@@ -52,6 +52,7 @@ def create_folder_name(
         args, lfm_global: str, lfm_tc: str, decade: int):
     return os.path.join(
         args.path_results,
+        args.source + "/",
         f"{args.prefix}lfm-g-{lfm_global}_lfm-t-{lfm_tc}_d-{decade}/")
 
 def main():
@@ -66,9 +67,10 @@ def main():
 
     for decade in args.decades:
         print(f"\nRunning for decade `{decade}`...")
-        print(f"Reading APS graph from `{args.path_aps}`...")
         graph_aps, t_edges_aps = read_graph(
-            folder=args.path_aps, decade=decade)
+            source=args.source,
+            folder=args.path_source,
+            decade=decade)
         nodes_min = graph_aps.get_node_class(CLASS_ATTRIBUTE)
 
         m = max(2, compute_m(graph_empirical=graph_aps))
