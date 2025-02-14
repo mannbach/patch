@@ -43,6 +43,7 @@ MAP_STAT_LABEL = {
     "gini": "Gini",
     "ei": "EI-index",
     "mann_whitney": "Mann-Whitney",
+    "gini_comp": r"$\mathregular{Gini}_m/\mathregular{Gini}_M$"
 }
 MAP_CM_H = {
     L_HOMOPHILY[0]: "#5e3c99",
@@ -56,6 +57,10 @@ MAP_MODEL_COLOR = {
     (CompoundLFM.HOMOPHILY.value, CompoundLFM.HOMOPHILY.value): plt.colormaps["tab20"](1),
     (CompoundLFM.PAH.value, CompoundLFM.UNIFORM.value): plt.colormaps["tab20"](2),
     (CompoundLFM.PAH.value, CompoundLFM.PAH.value): plt.colormaps["tab20"](3),
+}
+MAP_DATA_COLOR = {
+    APS: plt.colormaps["Greens"],
+    DBLP: plt.colormaps["Purples"],
 }
 
 # Inference
