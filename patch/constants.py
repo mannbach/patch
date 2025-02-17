@@ -59,8 +59,8 @@ MAP_MODEL_COLOR = {
     (CompoundLFM.PAH.value, CompoundLFM.PAH.value): plt.colormaps["tab20"](3),
 }
 MAP_DATA_COLOR = {
-    APS: plt.colormaps["Greens"],
-    DBLP: plt.colormaps["Purples"],
+    APS: plt.colormaps["Blues"],
+    DBLP: plt.colormaps["Reds"],
 }
 
 # Inference
