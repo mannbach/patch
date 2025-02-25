@@ -19,12 +19,14 @@ PATH_STATISTICS = "./output/stats/"
 PATH_PLOTS = "./output/plots/"
 PATH_APS = "./data/empirical/"
 PATH_DBLP = "./data/empirical/dblp/dblp_coauthor/"
+PATH_APS_CIT = "./data/empirical/aps-cit/"
 PATH_INFERENCE = "./output/inference/"
 PATH_INFERENCE_VALIDATION = "./output/inference/validation/"
 
 # Empirical
 APS = "aps"
 DBLP = "dblp"
+APS_CIT = "aps-cit"
 
 # Computation
 STOP_SIGNAL = -1
@@ -61,6 +63,7 @@ MAP_MODEL_COLOR = {
 MAP_DATA_COLOR = {
     APS: plt.colormaps["Blues"],
     DBLP: plt.colormaps["Reds"],
+    APS_CIT: plt.colormaps["Greens"],
 }
 
 # Inference
