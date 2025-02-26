@@ -8,7 +8,7 @@ from netin.utils.constants import MINORITY_VALUE, MAJORITY_VALUE, MINORITY_LABEL
 import pandas as pd
 
 from .temporal_edge_list import TemporalEdgeList
-from .constants import APS, DBLP, PATH_APS, PATH_DBLP
+from .constants import APS, DBLP, APS_CIT, PATH_APS, PATH_DBLP
 
 GENDER_UNKNOWN = 0
 GENDER_FEMALE = 1
@@ -29,6 +29,11 @@ def read_graph(
     if source == DBLP:
         return read_graph_dblp(
             folder=folder or PATH_DBLP,
+            decade=decade,
+            duration=duration)
+    if source == APS_CIT:
+        return read_graph_aps_cit(
+            folder=folder or PATH_APS,
             decade=decade,
             duration=duration)
     raise ValueError(f"Unknown source: {source}")
@@ -119,8 +124,8 @@ def read_graph_dblp(folder: str, decade: int, duration: int = 10)\
 
     return graph, edge_times
 
-def read_graph_aps(folder: str, decade: int, duration: int = 10)\
-    -> Tuple[Graph, TemporalEdgeList]:
+def _read_aps_data(folder: str, include_cit: bool = False)\
+    -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, Optional[pd.DataFrame]]:
     df_authorships = pd.read_csv(
         os.path.join(
             folder, "authorships.csv"), index_col=0)
@@ -134,6 +139,18 @@ def read_graph_aps(folder: str, decade: int, duration: int = 10)\
     df_authors = pd.read_csv(
         os.path.join(folder, "authors.csv"),
         index_col="id_author")
+
+    df_citations = None
+    if include_cit:
+        df_citations = pd.read_csv(
+            os.path.join(folder, "citations.csv"),
+            index_col=0)
+    return df_authorships, df_publications, df_author_name, df_authors, df_citations
+
+def read_graph_aps(folder: str, decade: int, duration: int = 10)\
+    -> Tuple[Graph, TemporalEdgeList]:
+    df_authorships, df_publications, df_author_name, df_authors, _ = _read_aps_data(
+        folder=folder)
 
     df_edges = df_authorships\
         .merge(df_publications,
@@ -210,6 +227,99 @@ def read_graph_aps(folder: str, decade: int, duration: int = 10)\
                     graph.add_edge(u_new, v_new)
                     edge_times[(u_new, v_new)] = time
                     edge_times[(v_new, u_new)] = time
+
+    nodes_min = BinaryClassNodeVector(
+        N=len(graph),
+        class_labels=[MAJORITY_LABEL, MINORITY_LABEL])
+    for node, minority in map_auth_new_group.items():
+        nodes_min[node] = minority
+
+    graph.set_node_class(
+        CLASS_ATTRIBUTE,
+        nodes_min)
+
+    return graph, edge_times
+
+def read_graph_aps_cit(
+        folder: str, decade: int, duration: int = 10)\
+    -> Tuple[Graph, TemporalEdgeList]:
+    df_authorships, df_pub, df_name, df_authors, df_cit = _read_aps_data(
+        folder=folder, include_cit=True)
+
+    df_auth_first = pd.merge(
+            df_authorships\
+                .groupby("id_publication")\
+                ["id_author_name"]\
+                .first(),
+            df_name,
+            left_on="id_author_name",
+            right_index=True)\
+        .merge(df_authors,
+               left_on="id_author",
+               right_index=True)\
+        .merge(df_pub,
+               left_index=True,
+               right_index=True)
+    df_auth_first = df_auth_first[
+        df_auth_first["disambiguated"]\
+            & (df_auth_first["id_gender_nq"] != GENDER_UNKNOWN)\
+            & (df_auth_first["timestamp"].dt.year < (decade + duration))]
+    df_auth_first[CLASS_ATTRIBUTE] = df_auth_first["id_gender_nq"]\
+        .map(lambda g: MINORITY_VALUE if g == GENDER_FEMALE else MAJORITY_VALUE)
+
+    df_cit = df_cit\
+        .merge(df_auth_first,
+               left_on="id_publication_citing",
+               right_index=True,
+               # Inner join
+               how="inner")\
+        .merge(df_auth_first,
+               left_on="id_publication_cited",
+               right_index=True,
+               how="inner",
+               suffixes=("_citing", "_cited"))\
+        .sort_values(
+                by=["timestamp_citing"],
+                ascending=True)
+
+    graph = Graph()
+    edge_times = {}
+
+    map_auth_old_new = {}
+    map_auth_new_group = {}
+
+    id_auth = 0
+    for x in set(df_cit["id_publication_citing"]).union(df_cit["id_publication_cited"]):
+        if not x in map_auth_old_new:
+            map_auth_old_new[x] = id_auth
+            map_auth_new_group[id_auth] = df_auth_first.loc[x, CLASS_ATTRIBUTE]
+            graph.add_node(id_auth)
+            id_auth += 1
+
+    time_last = None
+    time = -1
+
+    gb_cit = df_cit\
+        .groupby("id_publication_citing")
+    for id_pub_citing in df_cit['id_publication_citing'].unique():
+        df_pub = gb_cit.get_group(id_pub_citing)
+        time_curr = df_pub["timestamp_citing"].iloc[0]
+        if time_curr != time_last:
+            if time_last is not None:
+                assert time_last <= time_curr,\
+                    f"Assertion failed: time_old ({time_last}) > tmp_curr ({time_curr})"
+            time += 1
+            time_last = time_curr
+
+        for id_pub_cited in df_pub["id_publication_cited"]:
+            if id_pub_citing == id_pub_cited:
+                continue
+            u = map_auth_old_new[id_pub_citing]
+            v = map_auth_old_new[id_pub_cited]
+            if not graph.has_edge(u, v):
+                graph.add_edge(u, v)
+                edge_times[(u, v)] = time
+                edge_times[(v, u)] = time
 
     nodes_min = BinaryClassNodeVector(
         N=len(graph),

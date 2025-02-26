@@ -19,7 +19,6 @@ PATH_STATISTICS = "./output/stats/"
 PATH_PLOTS = "./output/plots/"
 PATH_APS = "./data/empirical/"
 PATH_DBLP = "./data/empirical/dblp/dblp_coauthor/"
-PATH_APS_CIT = "./data/empirical/aps-cit/"
 PATH_INFERENCE = "./output/inference/"
 PATH_INFERENCE_VALIDATION = "./output/inference/validation/"
 
