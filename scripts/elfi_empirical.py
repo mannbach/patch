@@ -11,7 +11,7 @@ from patch.constants import (
     PATH_INFERENCE,
     N_SAMPLES, N_NODES_SIM,
     L_LFM_GLOBAL, L_LFM_LOCAL,
-    N_ROUNDS, APS, DBLP)
+    N_ROUNDS, APS, DBLP, APS_CIT)
 from patch.elfi import (
     compute_m, create_elfi_simulator,
     register_summary_stats_functions,
@@ -28,7 +28,7 @@ def parse_args() -> Dict[str, Any]:
         The parsed arguments.
     """
     ap = ArgumentParser("Aggregate Statistics")
-    ap.add_argument("--source", "-s", type=str, choices=[APS, DBLP])
+    ap.add_argument("--source", "-s", type=str, choices=[APS, DBLP, APS_CIT])
     ap.add_argument("--path-source", "-ps", type=str, default=None)
     ap.add_argument("--path-results", "-pr",
                     default=PATH_INFERENCE, type=str)
