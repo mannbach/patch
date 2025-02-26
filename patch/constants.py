@@ -44,7 +44,15 @@ MAP_STAT_LABEL = {
     "gini": "Gini",
     "ei": "EI-index",
     "mann_whitney": "Mann-Whitney",
-    "gini_comp": r"$\mathregular{Gini}_m/\mathregular{Gini}_M$"
+    "gini_comp": r"$\mathregular{Gini}_m/\mathregular{Gini}_M$",
+    "ccf": "Clustering Coefficient",
+}
+MAP_STAT_LABEL_SHORT = {
+    "gini": r"Gini $\mathregular{G}$",
+    "ei": "EI",
+    "mann_whitney": "MW",
+    "gini_comp": r"$\mathregular{G}_m/\mathregular{G}_M$",
+    "ccf": "CCF",
 }
 MAP_CM_H = {
     L_HOMOPHILY[0]: "#5e3c99",
