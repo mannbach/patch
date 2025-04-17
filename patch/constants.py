@@ -33,7 +33,7 @@ STOP_SIGNAL = -1
 # Plotting
 COLOR_MAJ = "#2c7bb6ff"
 COLOR_MIN = "#d7191cff"
-PAPER_TEXT_WIDTH = 468
+PAPER_TEXT_WIDTH = 500
 SIZE_FIG = (PAPER_TEXT_WIDTH / 72, PAPER_TEXT_WIDTH / 72 / 1.618)
 MAP_LFM_SHORT = {
     CompoundLFM.UNIFORM.value: "U",
@@ -67,10 +67,11 @@ MAP_MODEL_COLOR = {
     (CompoundLFM.PAH.value, CompoundLFM.UNIFORM.value): plt.colormaps["tab20"](2),
     (CompoundLFM.PAH.value, CompoundLFM.PAH.value): plt.colormaps["tab20"](3),
 }
+
 MAP_DATA_COLOR = {
-    APS: plt.colormaps["Blues"],
-    DBLP: plt.colormaps["Reds"],
-    APS_CIT: plt.colormaps["Greens"],
+    DBLP: "#4f79b2",
+    APS: "#d23a3d",
+    APS_CIT: "#5e9b5e",
 }
 
 # Inference
