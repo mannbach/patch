@@ -230,3 +230,40 @@ def compute_group_ccf(res: Tuple[Graph, TemporalEdgeList]) -> np.ndarray:
         n_min * (n_maj - 1) * n_maj,
         n_min * (n_maj - 1) * n_maj,
         n_maj * (n_maj - 1) * (n_maj - 2)])
+
+def compute_contour_lines(
+    a_tau: np.ndarray, a_h: np.ndarray,
+    percentiles: np.ndarray
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    X, Y = np.meshgrid(
+        np.linspace(0, 1, 250),
+        np.linspace(0, 1, 250))
+
+    # Create kernel density estimate
+    kde = sc.stats.gaussian_kde(
+        np.vstack([a_tau, a_h]))
+
+    # Evaluate KDE on grid
+    Z = kde(np.vstack([X.ravel(), Y.ravel()]))
+    Z = np.reshape(Z, X.shape)
+
+    # Sort grid points by density in descending order
+    sorted_idx = np.argsort(Z.ravel())[::-1]
+    sorted_Z = Z.ravel()[sorted_idx]
+
+    cumulative_Z = np.cumsum(sorted_Z) / np.sum(sorted_Z)
+
+    thresholds = []
+    for percentile in percentiles:
+        # Find the index of the threshold value that contains the desired percentile
+        threshold_idx = np.searchsorted(cumulative_Z, percentile)
+
+        if threshold_idx < len(sorted_Z):
+            thresholds.append(sorted_Z[threshold_idx])
+        else:
+            thresholds.append(sorted_Z[-1])
+
+    return (
+        X, Y, Z,
+        np.array(thresholds)
+    )
