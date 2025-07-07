@@ -173,7 +173,7 @@ def main():
                 vals[summ_name] / args.n_samples\
                     for vals in results_posterior]
 
-        file_summary = os.path.join(folder_name, "summary.npz")
+        file_summary = os.path.join(folder_name, "predictive.npz")
         np.savez(
             file=file_summary,
             **results_config)
