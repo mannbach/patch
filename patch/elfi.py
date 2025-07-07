@@ -66,15 +66,23 @@ def d_cosine(*simulated, observed):
     return 1 - np.dot(simulated, observed) / (np.linalg.norm(simulated) * np.linalg.norm(observed))
 
 def create_elfi_simulator(
-        model_config: ModelConfig) -> elfi.Simulator:
+        model_config: ModelConfig,
+        params_constant: bool = False
+        ) -> elfi.Simulator:
     model = elfi.ElfiModel()
-    h_prior = elfi.Prior('uniform', 0, 1, model=model, name="h")
-    tau_prior = elfi.Prior('uniform', 0, 1, model=model, name="tau")
+
+    h_prior = elfi.Prior('uniform', 0, 1, model=model, name="h")\
+        if not params_constant else\
+            elfi.Constant(model_config.homophily, model=model, name="h")
+    tau_prior = elfi.Prior('uniform', 0, 1, model=model, name="tau")\
+        if not params_constant else\
+            elfi.Constant(model_config.tau, model=model, name="tau")
 
     simulator = elfi.Simulator(
         elfi.tools.vectorize(
             elfi_patch, # Simulator function
-            constants=(0, 1, 2, 3, 4), # Constant arguments
+            constants=(0, 1, 2, 3, 4) if not params_constant else\
+                (0, 1, 2, 3, 4, 5, 6),
             dtype=False), # Non-array dtype of simulation
         model_config.N, model_config.f_m, model_config.m,
         model_config.lfm_global.value, model_config.lfm_tc.value,
@@ -86,14 +94,15 @@ def create_elfi_simulator(
 
 def register_summary_stats_functions(
         simulator: elfi.Simulator,
-        l_observations: List[Tuple[Graph, TemporalEdgeList]]) -> List[elfi.Summary]:
+        l_observations: Optional[List[Tuple[Graph, TemporalEdgeList]]] = None)\
+            -> List[elfi.Summary]:
 
     # Define summary statistics
     summary_f = [
         elfi.Summary(
             elfi.tools.vectorize(f), simulator,
             name=k,
-            observed=f(l_observations))
+            observed=f(l_observations) if l_observations is not None else None)
         for k, f in ELFISummaryFunctions()._asdict().items()
     ]
     return summary_f
