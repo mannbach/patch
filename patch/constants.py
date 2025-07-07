@@ -21,6 +21,7 @@ PATH_APS = "./data/empirical/aps/"
 PATH_DBLP = "./data/empirical/dblp/dblp_coauthor/"
 PATH_INFERENCE = "./output/inference/"
 PATH_INFERENCE_VALIDATION = "./output/inference/validation/"
+PATH_INFERENCE_PREDICTIVE = "./output/inference/predictive/"
 
 # Empirical
 APS = "aps"
@@ -78,3 +79,4 @@ MAP_DATA_COLOR = {
 N_SAMPLES = 1000
 N_NODES_SIM = 500
 N_ROUNDS = 3
+N_SAMPLES_PREDICTIVE = 100
