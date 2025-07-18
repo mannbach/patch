@@ -54,6 +54,8 @@ MAP_STAT_LABEL_SHORT = {
     "mann_whitney": "MW",
     "gini_comp": r"$\mathregular{G}_m/\mathregular{G}_M$",
     "ccf": "CCF",
+    "gini_maj": r"$\mathregular{Gini_{M}}$",
+    "gini_min": r"$\mathregular{Gini_{m}}$",
 }
 MAP_CM_H = {
     L_HOMOPHILY[0]: "#5e3c99",
