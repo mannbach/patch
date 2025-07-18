@@ -7,7 +7,7 @@ import numpy as np
 import elfi
 
 from .temporal_edge_list import TemporalEdgeList
-from .statistics import compute_gini, compute_ei, compute_mann_whitney, compute_gini_maj, compute_gini_min, compute_ccf
+from .statistics import compute_gini, compute_ei, compute_mann_whitney, compute_gini_maj, compute_gini_min, compute_average_ccf, compute_gini_comp
 from .model_config import ModelConfig
 
 def elfi_patch(
@@ -50,11 +50,14 @@ def elfi_gini_maj(res: List[Tuple[Graph, TemporalEdgeList]]) -> float:
 def elfi_gini_min(res: List[Tuple[Graph, TemporalEdgeList]]) -> float:
     return np.mean([compute_gini_min(graph) for graph, _ in res])
 
+def elfi_gini_comp(res: List[Tuple[Graph, TemporalEdgeList]]) -> float:
+    return np.mean([compute_gini_comp(graph) for graph, _ in res])
+
 def elfi_mann_whitney(res: List[Tuple[Graph, TemporalEdgeList]]) -> float:
     return np.mean([compute_mann_whitney(graph) for graph, _ in res])
 
 def elfi_ccf(res: List[Tuple[Graph, TemporalEdgeList]]) -> np.ndarray:
-    return np.mean([compute_ccf(graph)[0] for graph, _ in res])
+    return np.mean([compute_average_ccf(graph) for graph, _ in res])
 
 def compute_m(graph_empirical: Graph) -> int:
     n_nodes = len(graph_empirical)
@@ -124,7 +127,6 @@ def _mean(data: np.ndarray, **kwargs):
 class ELFISummaryFunctions(NamedTuple):
     ei: Callable[[Graph, TemporalEdgeList], float] = elfi_ei
     gini: Callable[[Graph, TemporalEdgeList], float] = elfi_gini
-    gini_min: Callable[[Graph, TemporalEdgeList], float] = elfi_gini_maj
-    gini_maj: Callable[[Graph, TemporalEdgeList], float] = elfi_gini_min
+    gini_comp: Callable[[Graph, TemporalEdgeList], float] = elfi_gini_comp
     mann_whitney: Callable[[Graph, TemporalEdgeList], float] = elfi_mann_whitney
     ccf: Callable[[Graph, TemporalEdgeList], np.ndarray] = elfi_ccf
