@@ -4,7 +4,7 @@ import pytest
 import numpy as np
 from netin.graphs import Graph
 
-from patch.statistics import compute_ccf
+from patch.statistics import compute_ccf, compute_average_ccf
 
 # Language: Python
 
@@ -23,6 +23,8 @@ def test_ccf_empty():
 
     with pytest.raises(ValueError):
         compute_ccf(graph)
+    with pytest.raises(ValueError):
+        compute_average_ccf(graph)
 
 def test_ccf_triangle():
     # Triangle graph: 3 nodes fully connected.
@@ -30,16 +32,21 @@ def test_ccf_triangle():
     nodes = [0, 1, 2]
     edges = [(0, 1), (1, 2), (0, 2)]
     graph = create_fake_graph(nodes, edges)
-    result = compute_ccf(graph)
+    result_global = compute_ccf(graph)
+    result_average = compute_average_ccf(graph)
     expected = 1.0
-    assert np.isclose(result, expected, atol=1e-6)
+    assert np.isclose(result_global, expected, atol=1e-6)
+    assert np.isclose(result_average, expected, atol=1e-6)
 
 def test_ccf_line3():
     # Line graph: nodes: 0-1-2, only one triplet at the middle node but no triangle (t_count = 0).
     nodes = [0, 1, 2]
     edges = [(0, 1), (1, 2)]
     graph = create_fake_graph(nodes, edges)
-    result = compute_ccf(graph)
+    result_global = compute_ccf(graph)
+    result_average = compute_average_ccf(graph)
     # total_triplets: only node 1 contributes: (2*1)/2 = 1, t_count = 0 => CCF = 0.0.
     expected = 0.0
-    assert np.isclose(result, expected, atol=1e-6)
+    print(f"CCF for line graph: {result_global}, {result_average}")
+    assert np.isclose(result_global, expected, atol=1e-6)
+    assert np.isclose(result_average, expected, atol=1e-6)

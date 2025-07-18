@@ -1,6 +1,7 @@
 """Scripts to compute aggregate inequality network statistics.
 """
 from typing import Tuple, Dict, Set
+from itertools import product
 
 from netin.utils.constants import CLASS_ATTRIBUTE
 from netin.graphs import Graph, NodeVector
@@ -69,6 +70,12 @@ def compute_gini_maj(graph: Graph) -> float:
     nodes_min = graph.get_node_class(CLASS_ATTRIBUTE)
     return compute_gini(degrees[nodes_min.get_majority_mask()])
 
+def compute_gini_comp(graph: Graph) -> float:
+    degrees = graph.degrees()
+    nodes_min = graph.get_node_class(CLASS_ATTRIBUTE)
+    return compute_gini(degrees[nodes_min.get_minority_mask()]) /\
+              compute_gini(degrees[nodes_min.get_majority_mask()])
+
 def compute_mann_whitney(net: Graph) -> float:
     """Computes the Mann-Whitney U test statistic for the degree distribution of the minority and majority groups.
 
@@ -117,7 +124,7 @@ def _prepare_forward_neighbors(graph: Graph) -> Dict[int, Set[int]]:
 def compute_ccf(graph: Graph, typed: bool = False) -> np.ndarray:
     degrees = graph.degrees()
     forward = _prepare_forward_neighbors(graph)
-    nodes_min = graph.get_node_class(CLASS_ATTRIBUTE)
+    nodes_min = graph.get_node_class(CLASS_ATTRIBUTE) if typed else None
 
     t_count = np.zeros(4 if typed else 1)
     for u in graph.nodes():
@@ -148,6 +155,36 @@ def compute_ccf(graph: Graph, typed: bool = False) -> np.ndarray:
     global_clustering = (3 * t_count) / total_triplets
     return global_clustering
 
+def compute_average_ccf(graph: Graph) -> float:
+    """Compute the average clustering coefficient (CCF) of the graph.
+    The average CCF is the average of the local clustering coefficients of all nodes in the graph.
+
+    Parameters
+    ----------
+    graph : Graph
+        The input graph.
+
+    Returns
+    -------
+    float
+        The average clustering coefficient (CCF) of the graph.
+    """
+    degrees = graph.degrees()
+    count_triangles = NodeVector(len(graph), dtype=int)
+    for u, v in graph.edges():
+        for w in graph.neighbors(u).intersection(graph.neighbors(v)):
+            count_triangles[u] += 1
+            count_triangles[v] += 1
+            count_triangles[w] += 1
+    mask_degree = degrees.vals() >= 2
+
+    local_ccf = NodeVector.from_ndarray(
+        np.zeros(len(graph), dtype=float))
+
+    # Compute the local CCF for all nodes with degree >= 2
+    local_ccf[mask_degree] = 2 * (count_triangles[mask_degree] / 3)\
+        / (degrees[mask_degree] * (degrees[mask_degree] - 1))
+    return np.mean(local_ccf)
 
 def get_cdf(data: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """Computes the cumulative distribution function (CDF) of the data.
