@@ -80,7 +80,6 @@ def read_graph_dblp(folder: str, decade: int, duration: int = 10)\
     id_auth = 0
     graph = Graph()
 
-    print(f"Number of authors: {len(authors_active)}")
     for x in authors_active:
         if not x in map_auth_old_new:
             map_auth_old_new[x] = id_auth
@@ -94,7 +93,6 @@ def read_graph_dblp(folder: str, decade: int, duration: int = 10)\
     time = -1
     time_last = None
     edge_times = {}
-    print(f"Number of edges: {len(df_edges)}")
     for _, row in df_edges.iterrows():
         time_curr = row["timestamp"]
         if time_curr != time_last:
