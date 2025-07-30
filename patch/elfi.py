@@ -1,5 +1,6 @@
 from typing import NamedTuple, Callable, Tuple, List, Optional
 
+import numpy as np
 from netin.models import PATCHModel, CompoundLFM
 from netin.graphs import Graph
 from netin.utils.event_handling import Event
@@ -9,6 +10,7 @@ import elfi
 from .temporal_edge_list import TemporalEdgeList
 from .statistics import compute_gini, compute_ei, compute_mann_whitney, compute_gini_maj, compute_gini_min, compute_average_ccf, compute_gini_comp
 from .model_config import ModelConfig
+from .constants import N_NODES_SIM
 
 def elfi_patch(
         N:int, f_m:float, m: int,
@@ -59,11 +61,15 @@ def elfi_mann_whitney(res: List[Tuple[Graph, TemporalEdgeList]]) -> float:
 def elfi_ccf(res: List[Tuple[Graph, TemporalEdgeList]]) -> np.ndarray:
     return np.mean([compute_average_ccf(graph) for graph, _ in res])
 
-def compute_m(graph_empirical: Graph) -> int:
+def compute_m(
+        graph_empirical: Graph,
+        n_nodes_sim: int = N_NODES_SIM) -> int:
     n_nodes = len(graph_empirical)
     n_edges = graph_empirical.number_of_edges()
-    return int((((2*n_nodes) - 1) / 2)\
-               - (np.sqrt(((2*n_nodes) - 1) ** 2 - (8 * n_edges)) / 2))
+    return int(np.rint(
+        (n_nodes_sim - (1/2))\
+            - np.sqrt((n_nodes_sim - (1/2))**2 - (2 * n_edges / n_nodes) * n_nodes_sim)
+    ))
 
 def d_cosine(*simulated, observed):
     return 1 - np.dot(simulated, observed) / (np.linalg.norm(simulated) * np.linalg.norm(observed))
