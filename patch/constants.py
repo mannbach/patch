@@ -45,17 +45,17 @@ MAP_STAT_LABEL = {
     "gini": "Gini",
     "ei": "EI-index",
     "mann_whitney": "Mann-Whitney",
-    "gini_comp": r"$\mathregular{Gini}_m/\mathregular{Gini}_M$",
+    "gini_comp": r"$\mathregular{Gini_{min}}/\mathregular{Gini_{maj}}$",
     "ccf": "Clustering Coefficient",
 }
 MAP_STAT_LABEL_SHORT = {
     "gini": r"Gini $\mathregular{G}$",
     "ei": "EI",
     "mann_whitney": "MW",
-    "gini_comp": r"$\mathregular{G}_m/\mathregular{G}_M$",
+    "gini_comp": r"$\mathregular{G_{min}}/\mathregular{G_{maj}}$",
     "ccf": "CCF",
-    "gini_maj": r"$\mathregular{Gini_{M}}$",
-    "gini_min": r"$\mathregular{Gini_{m}}$",
+    "gini_maj": r"$\mathregular{Gini_{maj}}$",
+    "gini_min": r"$\mathregular{Gini_{min}}$",
 }
 MAP_CM_H = {
     L_HOMOPHILY[0]: "#5e3c99",
