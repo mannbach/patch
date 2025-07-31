@@ -37,9 +37,9 @@ COLOR_MIN = "#d7191cff"
 PAPER_TEXT_WIDTH = 500
 SIZE_FIG = (PAPER_TEXT_WIDTH / 72, PAPER_TEXT_WIDTH / 72 / 1.618)
 MAP_LFM_SHORT = {
-    CompoundLFM.UNIFORM.value: "U",
-    CompoundLFM.HOMOPHILY.value: "H",
-    CompoundLFM.PAH.value: "PAH",
+    CompoundLFM.UNIFORM.value: r"$\mathregular{U}$",
+    CompoundLFM.HOMOPHILY.value: r"$\mathregular{H}$",
+    CompoundLFM.PAH.value: r"$\mathregular{PAH}$",
 }
 MAP_STAT_LABEL = {
     "gini": "Gini",
