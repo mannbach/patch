@@ -82,7 +82,17 @@ def read_graph_dblp(folder: str, decade: int, duration: int = 10)\
         names=[
             'author_id1', 'author_id2', 'weight', 'timestamp'])
 
+    df_edges = df_edges\
+        .merge(df_authors, left_on="author_id1", right_index=True, suffixes=("", "_1"))\
+        .merge(df_authors, left_on="author_id2", right_index=True, suffixes=("", "_2"))
+
     df_edges["timestamp"] = pd.to_datetime(df_edges["timestamp"], unit="s")
+
+    # Filter out authors with unknown genders
+    df_edges = df_edges[
+        (df_edges["gender_1"] != GENDER_UNKNOWN_DBLP)\
+            & (df_edges["gender_2"] != GENDER_UNKNOWN_DBLP)
+    ]
 
     # Keep only authors who have published after decade + duration
     authors_active_1 = df_edges\
