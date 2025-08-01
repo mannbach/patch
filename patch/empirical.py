@@ -170,7 +170,7 @@ def read_graph_dblp(folder: str, decade: int, duration: int = 10)\
     return graph, edge_times
 
 def _read_aps_data(folder: str, include_cit: bool = False)\
-    -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, Optional[pd.DataFrame]]:
+    -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, Optional[pd.DataFrame]]:
     df_authorships = pd.read_csv(
         os.path.join(
             folder, "authorships.csv"), index_col=0)
@@ -194,6 +194,27 @@ def _read_aps_data(folder: str, include_cit: bool = False)\
 
 def read_graph_aps(folder: str, decade: int, duration: int = 10)\
     -> Tuple[Graph, TemporalEdgeList]:
+    """Reads a decade snapshot graph from the APS dataset.
+
+    This functions removes authors if
+    - they were not disambiguated or
+    - have no gender information available
+    - they have not published after the given decade + duration
+
+    Parameters
+    ----------
+    folder : str
+        The folder where the APS data is stored.
+    decade : int
+        The decade for which to read the graph.
+    duration : int, optional
+        The duration in years for which to create the graph, by default 10.
+
+    Returns
+    -------
+    Tuple[Graph, TemporalEdgeList]
+        The graph and the temporal edge list.
+    """
     df_authorships, df_publications, df_author_name, df_authors, _ = _read_aps_data(
         folder=folder)
 
@@ -288,6 +309,26 @@ def read_graph_aps(folder: str, decade: int, duration: int = 10)\
 def read_graph_aps_cit(
         folder: str, decade: int, duration: int = 10)\
     -> Tuple[Graph, TemporalEdgeList]:
+    """Creates a decade snapshot citation graph from the APS dataset.
+
+    This function removes authors if
+    - they were not disambiguated or
+    - have no gender information available
+
+    Returns
+    -------
+    Tuple[Graph, TemporalEdgeList]
+        The graph and the temporal edge list.
+
+    Parameters
+    ----------
+    folder : str
+        The folder where the APS data is stored.
+    decade : int
+        The decade for which to read the graph.
+    duration : int, optional
+        The duration in years for which to create the graph, by default 10.
+    """
     df_authorships, df_pub, df_name, df_authors, df_cit = _read_aps_data(
         folder=folder, include_cit=True)
 
@@ -334,7 +375,8 @@ def read_graph_aps_cit(
     map_auth_new_group = {}
 
     id_auth = 0
-    for x in set(df_cit["id_publication_citing"]).union(df_cit["id_publication_cited"]):
+    for x in set(df_cit["id_publication_citing"])\
+            .union(df_cit["id_publication_cited"]):
         if not x in map_auth_old_new:
             map_auth_old_new[x] = id_auth
             map_auth_new_group[id_auth] = df_auth_first.loc[x, CLASS_ATTRIBUTE]
