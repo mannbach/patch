@@ -1,7 +1,6 @@
 """Scripts to compute aggregate inequality network statistics.
 """
 from typing import Tuple, Dict, Set
-from itertools import product
 
 from netin.utils.constants import CLASS_ATTRIBUTE
 from netin.graphs import Graph, NodeVector
@@ -77,7 +76,8 @@ def compute_gini_comp(graph: Graph) -> float:
               compute_gini(degrees[nodes_min.get_majority_mask()])
 
 def compute_mann_whitney(net: Graph) -> float:
-    """Computes the Mann-Whitney U test statistic for the degree distribution of the minority and majority groups.
+    """Computes the Mann-Whitney U test statistic for the degree distribution
+    of the minority and majority groups.
 
     Parameters
     ----------
@@ -204,7 +204,8 @@ def get_cdf(data: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     return sorted_data, yvals
 
 def compute_group_ccf(res: Tuple[Graph, TemporalEdgeList]) -> np.ndarray:
-    """Compute the clustering coefficient for each possible triangle combination based on the minority and majority groups.
+    """Compute the clustering coefficient for each possible triangle combination
+    based on the minority and majority groups.
 
     Parameters
     ----------
@@ -215,7 +216,8 @@ def compute_group_ccf(res: Tuple[Graph, TemporalEdgeList]) -> np.ndarray:
     -------
     np.ndarray
         The clustering coefficients for each possible triangle combination.
-        Returns a list of clustering coefficients ordered by the number of minority nodes in the triangle:
+        Returns a list of clustering coefficients ordered by the number of
+        minority nodes in the triangle:
         0: mmm
         1: mmM
         2: mMm
