@@ -1,10 +1,11 @@
+"""This script contains functions to interact with the ELFI inference package.
+"""
 from typing import NamedTuple, Callable, Tuple, List, Optional
 
 import numpy as np
 from netin.models import PATCHModel, CompoundLFM
 from netin.graphs import Graph
 from netin.utils.event_handling import Event
-import numpy as np
 import elfi
 
 from .temporal_edge_list import TemporalEdgeList
@@ -16,10 +17,37 @@ def elfi_patch(
         N:int, f_m:float, m: int,
         lfm_global: CompoundLFM, lfm_tc: CompoundLFM,
         h: float, tau: float,
-        random_state: np.random.RandomState) -> Tuple[Graph, TemporalEdgeList]:
+        random_state: np.random.RandomState) -> List[Tuple[Graph, TemporalEdgeList]]:
+    """Simulate a network using the PATCHModel and return the graph and temporal edge list.
+
+    Parameters
+    ----------
+    N : int
+        The number of nodes in the network.
+    f_m : float
+        The fraction of minority nodes.
+    m : int
+        The number of links per node.
+    lfm_global : CompoundLFM
+        The global link formation model.
+    lfm_tc : CompoundLFM
+        The triadic closure link formation model.
+    h : float
+        The homophily parameter.
+    tau : float
+        The tau parameter for the model.
+    random_state : np.random.RandomState
+        The random state for reproducibility.
+
+    Returns
+    -------
+    List[Tuple[Graph, TemporalEdgeList]]
+        A tuple containing the simulated graph and a temporal edge list.
+    """
     time = 0
     t_edges = {}
 
+    # Define a handler for the link addition event to track the time of each link
     def link_add_handler(source, target):
         nonlocal time, t_edges
         t_edges[source, target] = time
@@ -29,7 +57,8 @@ def elfi_patch(
     model = PATCHModel(
         N=int(N), f_m=float(f_m), m=int(m),
         tau=float(tau), h_M=float(h), h_m=float(h),
-        lfm_global=CompoundLFM[lfm_global], lfm_tc=CompoundLFM[lfm_tc],
+        lfm_global=CompoundLFM[lfm_global],
+        lfm_tc=CompoundLFM[lfm_tc],
         random_state=random_state)
 
     model.register_event_handler(
@@ -40,6 +69,7 @@ def elfi_patch(
     graph = model.simulate()
     return [(graph, t_edges)]
 
+# Wrapper functions for ELFI summary statistics
 def elfi_gini(res: List[Tuple[Graph, TemporalEdgeList]]) -> float:
     return np.mean([compute_gini(graph.degrees()) for graph, _ in res])
 
@@ -64,6 +94,20 @@ def elfi_ccf(res: List[Tuple[Graph, TemporalEdgeList]]) -> np.ndarray:
 def compute_m(
         graph_empirical: Graph,
         n_nodes_sim: int = N_NODES_SIM) -> int:
+    """Return the number of edges per node to reproduce the empirical average degree.
+
+    Parameters
+    ----------
+    graph_empirical : Graph
+        The empirical graph from which the average degree is computed.
+    n_nodes_sim : int, optional
+        The number of nodes in the simulated graph, by default N_NODES_SIM
+
+    Returns
+    -------
+    int
+        The number of edges per node to reproduce the empirical average degree.
+    """
     n_nodes = len(graph_empirical)
     n_edges = graph_empirical.number_of_edges()
     return int(np.rint(
@@ -71,13 +115,26 @@ def compute_m(
             - np.sqrt((n_nodes_sim - (1/2))**2 - (2 * n_edges / n_nodes) * n_nodes_sim)
     ))
 
-def d_cosine(*simulated, observed):
-    return 1 - np.dot(simulated, observed) / (np.linalg.norm(simulated) * np.linalg.norm(observed))
-
 def create_elfi_simulator(
         model_config: ModelConfig,
         params_constant: bool = False
         ) -> elfi.Simulator:
+    """Create an ELFI simulator for the PATCH model.
+
+    Parameters
+    ----------
+    model_config : ModelConfig
+        The model configuration containing the parameters for the PATCH model.
+    params_constant : bool, optional
+        Whether to keep the parameters constant during optimization, by default False.
+        This is useful for debugging or the predictive analysis.
+        If `True`, the parameters are set to the values in `model_config` and not optimized.
+
+    Returns
+    -------
+    elfi.Simulator
+        The ELFI simulator for the PATCH model.
+    """
     model = elfi.ElfiModel()
 
     h_prior = elfi.Prior('uniform', 0, 1, model=model, name="h")\
@@ -105,6 +162,13 @@ def register_summary_stats_functions(
         simulator: elfi.Simulator,
         l_observations: Optional[List[Tuple[Graph, TemporalEdgeList]]] = None)\
             -> List[elfi.Summary]:
+    """Register the summary statistics functions to the ELFI simulator.
+
+    Returns
+    -------
+    List[elfi.Summary]
+        The list of registered summary statistics functions.
+    """
 
     # Define summary statistics
     summary_f = [
@@ -119,18 +183,45 @@ def register_summary_stats_functions(
 def register_sampler(summary_sim: List[elfi.Summary],
                      pool: Optional[elfi.ArrayPool] = None)\
         -> elfi.AdaptiveDistanceSMC:
+    """ Register the sampler for the ELFI simulator.
+
+    Parameters
+    ----------
+    summary_sim : List[elfi.Summary]
+        The list of summary statistics functions to be used in the sampler.
+    pool : Optional[elfi.ArrayPool], optional
+        The output pool for the sampler, by default None.
+        This is used to store the results of the simulation.
+
+    Returns
+    -------
+    elfi.AdaptiveDistanceSMC
+        The registered sampler for the ELFI simulator.
+    """
     distance = elfi.AdaptiveDistance(*summary_sim)
     sampler = elfi.AdaptiveDistanceSMC(
         distance, pool=pool)
     return sampler
 
-def create_pool(summary_f: List[elfi.Summary]) -> elfi.OutputPool:
+def create_pool(summary_f: List[elfi.Summary])\
+        -> elfi.OutputPool:
+    """Create an output pool for the ELFI simulator.
+
+    Parameters
+    ----------
+    summary_f : List[elfi.Summary]
+        The list of summary statistics functions to be used in the output pool.
+
+    Returns
+    -------
+    elfi.OutputPool
+        The output pool for the ELFI simulator.
+    """
     return elfi.OutputPool([s.name for s in summary_f])
 
-def _mean(data: np.ndarray, **kwargs):
-    return np.mean(data, axis=1, **kwargs)
-
 class ELFISummaryFunctions(NamedTuple):
+    """The summary statistics functions to be used in the ELFI simulator.
+    """
     ei: Callable[[Graph, TemporalEdgeList], float] = elfi_ei
     gini: Callable[[Graph, TemporalEdgeList], float] = elfi_gini
     gini_comp: Callable[[Graph, TemporalEdgeList], float] = elfi_gini_comp
