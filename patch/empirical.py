@@ -84,7 +84,10 @@ def read_graph_dblp(folder: str, decade: int, duration: int = 10)\
 
     df_edges = df_edges\
         .merge(df_authors, left_on="author_id1", right_index=True, suffixes=("", "_1"))\
-        .merge(df_authors, left_on="author_id2", right_index=True, suffixes=("", "_2"))
+        .merge(df_authors, left_on="author_id2", right_index=True, suffixes=("", "_2"))\
+        .rename(columns={
+            "gender": "gender_1",
+        })
 
     df_edges["timestamp"] = pd.to_datetime(df_edges["timestamp"], unit="s")
 
