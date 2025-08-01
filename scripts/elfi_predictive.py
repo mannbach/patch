@@ -34,7 +34,7 @@ def parse_args() -> Dict[str, Any]:
     Dict[str, Any]
         The parsed arguments.
     """
-    ap = ArgumentParser("Aggregate Statistics")
+    ap = ArgumentParser("ELFI predictive analysis")
     ap.add_argument("--source", "-s", type=str, choices=[APS, DBLP, APS_CIT])
     ap.add_argument("--path-source", "-ps", type=str, default=PATH_INFERENCE)
     ap.add_argument("--path-results", "-pr",
@@ -83,7 +83,7 @@ def _work(
         }))
 
 def main():
-    print("ELFI APS\nParsing args...")
+    print("ELFI predictive analysis\nParsing args...")
     args = parse_args()
 
     print(f"Setting `n_processes` to {args.n_processes}")

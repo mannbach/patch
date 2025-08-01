@@ -29,7 +29,7 @@ def parse_args() -> Dict[str, Any]:
     Dict[str, Any]
         The parsed arguments.
     """
-    ap = ArgumentParser("Aggregate Statistics")
+    ap = ArgumentParser("ELFI validation")
 
     ap.add_argument("--prefix", type=str, default="")
 
@@ -81,7 +81,7 @@ def worker_wrapper(kwargs):
     return elfi_patch(**kwargs)[0]
 
 def main():
-    print("ELFI APS\nParsing args...")
+    print("ELFI validation\nParsing args...")
     args = parse_args()
 
     print(f"Setting `n_processes` to {args.n_processes}")
