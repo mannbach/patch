@@ -1,7 +1,7 @@
 from itertools import product
 import json
 import os
-from typing import Any, Dict, Tuple, List, Generator
+from typing import Tuple, List, Generator
 
 import numpy as np
 from netin.graphs import Graph, BinaryClassNodeVector
@@ -154,7 +154,7 @@ def gen_nets_from_file(
     for h, tau, lfm_g, lfm_t, r in\
         product(l_homophily, l_tau, l_lfm_g, l_lfm_t, range(n_realizations)):
         try:
-            net, info =\
+            info, net =\
                 read_graph_from_json(os.path.join(path, create_file_name(
                     ModelConfig(
                         N=N, m=m,
@@ -165,7 +165,7 @@ def gen_nets_from_file(
                         lfm_tc=lfm_t,
                         realization=r),
                     **kwargs)))
-            yield net, info
+            yield info, net
         except ValueError as e:
             print((f"Error reading combination: {h}, {tau}, "
                    f"{lfm_g}, {lfm_t}, {r}. Message:\n{e}\nSkipping"))
