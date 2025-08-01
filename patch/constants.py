@@ -1,3 +1,6 @@
+"""Constants for all analyses.
+This should not import any other `path`-modules.
+"""
 from netin.models import CompoundLFM
 import matplotlib.pyplot as plt
 

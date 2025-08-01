@@ -1,10 +1,14 @@
+"""This script provides functions to handle the empirical data used in the inference analysis.
+"""
 from typing import Tuple, Optional
 import os
 from itertools import combinations
 
 from netin.graphs import BinaryClassNodeVector
 from netin.graphs import Graph
-from netin.utils.constants import MINORITY_VALUE, MAJORITY_VALUE, MINORITY_LABEL, MAJORITY_LABEL, CLASS_ATTRIBUTE
+from netin.utils.constants import (
+    MINORITY_VALUE, MAJORITY_VALUE, MINORITY_LABEL,
+    MAJORITY_LABEL, CLASS_ATTRIBUTE)
 import pandas as pd
 
 from .temporal_edge_list import TemporalEdgeList
@@ -20,7 +24,26 @@ GENDER_FEMALE_DBLP = 'gf'
 def read_graph(
         source: str, decade: int,
         duration: int = 10,
-        folder: Optional[str] = None) -> Tuple[Graph, TemporalEdgeList]:
+        folder: Optional[str] = None)\
+            -> Tuple[Graph, TemporalEdgeList]:
+    """Read a graph for a given source and decade.
+
+    Parameters
+    ----------
+    source : str
+        The source of the graph (e.g., "aps", "dblp").
+    decade : int
+        The decade for which to read the graph.
+    duration : int, optional
+        The duration in years for which to read the graph, by default 10.
+    folder : str, optional
+        The folder where the data is stored, by default None.
+
+    Returns
+    -------
+    Tuple[Graph, TemporalEdgeList]
+        The graph and the temporal edge list.
+    """
     if source == APS:
         return read_graph_aps(
             folder=folder or PATH_APS,
@@ -40,21 +63,32 @@ def read_graph(
 
 def read_graph_dblp(folder: str, decade: int, duration: int = 10)\
     -> Tuple[Graph, TemporalEdgeList]:
+    """Read a graph from the DBLP dataset.
+
+    Returns
+    -------
+    Tuple[Graph, TemporalEdgeList]
+        The graph and the temporal edge list.
+    """
     df_authors = pd.read_csv(
         os.path.join(folder, "ent.author"),
         sep=r"\s+",
-        names=['author_id', 'author_name', 'gender']).set_index('author_id')
+        names=['author_id', 'author_name', 'gender'])\
+            .set_index('author_id')
     df_edges = pd.read_csv(
         os.path.join(folder, "out.dblp_coauthor"),
         skiprows=1,
         sep=r"\s+",
-        names=['author_id1', 'author_id2', 'weight', 'timestamp'])
+        names=[
+            'author_id1', 'author_id2', 'weight', 'timestamp'])
 
     df_edges["timestamp"] = pd.to_datetime(df_edges["timestamp"], unit="s")
 
     # Keep only authors who have published after decade + duration
-    authors_active_1 = df_edges.groupby("author_id1")["timestamp"].max().dt.year >= (decade + duration)
-    authors_active_2 = df_edges.groupby("author_id2")["timestamp"].max().dt.year >= (decade + duration)
+    authors_active_1 = df_edges\
+        .groupby("author_id1")["timestamp"].max().dt.year >= (decade + duration)
+    authors_active_2 = df_edges\
+        .groupby("author_id2")["timestamp"].max().dt.year >= (decade + duration)
     authors_active = authors_active_1 | authors_active_2
     authors_active = authors_active[authors_active].index
 
