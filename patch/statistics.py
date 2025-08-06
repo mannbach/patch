@@ -72,6 +72,8 @@ def compute_gini_maj(graph: Graph) -> float:
 def compute_gini_comp(graph: Graph) -> float:
     degrees = graph.degrees()
     nodes_min = graph.get_node_class(CLASS_ATTRIBUTE)
+    if not np.any(nodes_min):
+        return 1.0
     return compute_gini(degrees[nodes_min.get_minority_mask()]) /\
               compute_gini(degrees[nodes_min.get_majority_mask()])
 
