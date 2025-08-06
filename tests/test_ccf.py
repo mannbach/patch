@@ -50,3 +50,26 @@ def test_ccf_line3():
     print(f"CCF for line graph: {result_global}, {result_average}")
     assert np.isclose(result_global, expected, atol=1e-6)
     assert np.isclose(result_average, expected, atol=1e-6)
+
+def test_ccf_tri_plus_one():
+    # Test a triangle with one additional node connected to one of the triangle nodes.
+    nodes = [0, 1, 2, 3]
+    edges = [(0, 1), (1, 2), (0, 2), (2, 3)]
+    graph = create_fake_graph(nodes, edges)
+    result_global = compute_ccf(graph)
+    result_average = compute_average_ccf(graph)
+
+    # Expected average CCF:
+    # Nodes 0 and 1 have only neighbors in triangle: contribute local clustering of 1.0
+    # Node 3 has no closed triangle: contributes 0.0
+    # Node 2 has one closed and two open triangles: contributes 1/3
+    # Average should be 1/4 * (1 + 1 + 0 + 1/3) = 7/12
+    expected_average = 7 / 12
+
+    # Expected global CCF:
+    # Total triplets: 3 (from triangle) + 2 (node 3 with node 0 and 1 via node 2) = 5
+    # Triangle count: 1
+    expected_global = (3 * 1) / 5
+
+    assert np.isclose(result_average, expected_average, atol=1e-6)
+    assert np.isclose(result_global[0], expected_global, atol=1e-6)
