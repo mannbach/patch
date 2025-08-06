@@ -223,7 +223,7 @@ class ELFISummaryFunctions(NamedTuple):
     """The summary statistics functions to be used in the ELFI simulator.
     """
     ei: Callable[[Graph, TemporalEdgeList], float] = elfi_ei
-    gini: Callable[[Graph, TemporalEdgeList], float] = elfi_gini
-    gini_comp: Callable[[Graph, TemporalEdgeList], float] = elfi_gini_comp
+    gini_min: Callable[[Graph, TemporalEdgeList], float] = elfi_gini_min
+    gini_maj: Callable[[Graph, TemporalEdgeList], float] = elfi_gini_maj
     mann_whitney: Callable[[Graph, TemporalEdgeList], float] = elfi_mann_whitney
     ccf: Callable[[Graph, TemporalEdgeList], np.ndarray] = elfi_ccf
