@@ -53,7 +53,7 @@ MAP_STAT_LABEL = {
 }
 MAP_STAT_LABEL_SHORT = {
     "gini": r"Gini $\mathregular{G}$",
-    "ei": "EI",
+    "ei": "EI-index",
     "mann_whitney": "MW",
     "gini_comp": r"$\mathregular{G_{min}}/\mathregular{G_{maj}}$",
     "ccf": "CCF",
