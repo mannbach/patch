@@ -1,3 +1,5 @@
+"""Performs predictive analysis using ELFI based on previously inferred posteriors.
+"""
 from argparse import ArgumentParser
 from typing import Any, Dict
 import os
@@ -7,8 +9,7 @@ from collections import defaultdict
 
 import elfi
 import numpy as np
-from netin.utils.constants import CLASS_ATTRIBUTE
-from netin.models import PATCHModel, CompoundLFM
+from netin.models import PATCHModel
 
 from patch.constants import (
     PATH_INFERENCE,
@@ -17,11 +18,7 @@ from patch.constants import (
     L_LFM_GLOBAL, L_LFM_LOCAL,
     N_ROUNDS, APS, DBLP, APS_CIT)
 from patch.elfi import (
-    compute_m, create_elfi_simulator,
-    register_summary_stats_functions,
-    register_sampler,
     ELFISummaryFunctions)
-from patch.empirical import read_graph
 from patch.model_config import ModelConfig
 
 STOP_SIGNAL = -1
@@ -57,6 +54,28 @@ def create_folder_name(
         lfm_global: str, lfm_tc: str,
         decade: int,
         prefix: str = ""):
+    """Creates the folder name for storing predictive results.
+
+    Parameters
+    ----------
+    path_base : str
+        Base path for the results.
+    source : str
+        Source dataset.
+    lfm_global : str
+        Global link formation mechanism model.
+    lfm_tc : str
+        Local link formation mechanism model.
+    decade : int
+        Decade for the data.
+    prefix : str, optional
+        Prefix for the folder name, by default ""
+
+    Returns
+    -------
+    str
+        The folder name for storing predictive results.
+    """
     return os.path.join(
         path_base,
         source + "/",
@@ -83,6 +102,8 @@ def _work(
         }))
 
 def main():
+    """Performs predictive analysis using ELFI based on previously inferred posteriors.
+    """
     print("ELFI predictive analysis\nParsing args...")
     args = parse_args()
 

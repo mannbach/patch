@@ -93,13 +93,16 @@ def create_file_name(
 def create_net_subfolder_name(
     N:int , m: int, f: float
 ) -> str:
-    """Creates and returns a subfolder name string describing the
-    configuration given by the parameters.
+    """Creates a subfolder name based on the network parameters.
 
     Parameters
     ----------
-    model_config : ModelConfig
-        The model configuration to create the subfolder name.
+    N : int
+        Number of nodes.
+    m : int
+        Number of edges to attach from a new node to existing nodes.
+    f : float
+        Fraction of minority nodes.
 
     Returns
     -------
