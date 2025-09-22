@@ -1,3 +1,5 @@
+"""Tests for the computation of the average clustering coefficient (CCF) in graphs.
+"""
 from typing import List, Tuple
 
 import pytest
@@ -38,7 +40,8 @@ def test_ccf_empty():
 
 def test_ccf_triangle():
     # Triangle graph: 3 nodes fully connected.
-    # Expected global clustering: each node forms one triplet -> total_triplets = 3 and t_count = 1, so CCF=(3*1)/3=1.0.
+    # Expected global clustering: each node forms one
+    # triplet -> total_triplets = 3 and t_count = 1, so CCF=(3*1)/3=1.0.
     nodes = [0, 1, 2]
     edges = [(0, 1), (1, 2), (0, 2)]
     graph = create_fake_graph(nodes, edges)

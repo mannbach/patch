@@ -1,5 +1,6 @@
+"""Tests the computation of the Gini coefficient from degree distributions.
+"""
 import numpy as np
-import pytest
 from patch.statistics import compute_gini
 
 def test_compute_gini_uniform():

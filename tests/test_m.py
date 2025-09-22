@@ -1,8 +1,12 @@
+"""Tests the computation of `m` from empirical graphs.
+"""
 from netin.models import PATCHModel, CompoundLFM
 
 from patch.elfi import compute_m
 
 def test_compute_m():
+    """Tests the computation of `m` from fake empirical graphs.
+    """
     for n in [10, 100, 1000, 5000]:
         for m in [2, 4, 8]:
             model = PATCHModel(
