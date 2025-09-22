@@ -1,4 +1,6 @@
 # PATCH
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17177242.svg)](https://doi.org/10.5281/zenodo.17177242)
+
 This project contains the code to produce, analyze and plot the networks created by `PATCH`, a network model of [P]referential [A]ttachment, [T]riadic [C]losure and [H]omophily.
 This is an interface that simplifies the interaction with the [NetIn software package](https://cshvienna.github.io/NetworkInequalities/).
 Check the linked [Zenodo page](https://doi.org/10.5281/zenodo.17160884) to download the intermediate results data.
