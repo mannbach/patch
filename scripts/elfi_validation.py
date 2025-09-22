@@ -1,6 +1,6 @@
 """Performs validation of the ELFI-based inference method.
 """
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
 from argparse import ArgumentParser
 import os
 from itertools import product
@@ -23,7 +23,6 @@ from patch.elfi import (
     compute_m, create_elfi_simulator, register_summary_stats_functions,
     register_sampler, create_pool)
 from patch.model_config import ModelConfig
-from patch.temporal_edge_list import TemporalEdgeList
 
 def parse_args() -> Dict[str, Any]:
     """Parses the command line arguments.
@@ -115,7 +114,7 @@ def create_inf_folder_name(
     """
     return f"lfm-g-inf-{lfm_global_inf}_lfm-t-inf-{lfm_tc_inf}/"
 
-def worker_wrapper(kwargs) -> List[Tuple[Graph, TemporalEdgeList]]:
+def worker_wrapper(kwargs) -> List[Graph]:
     """Wraps the ELFI patch function for multiprocessing.
 
     Parameters
@@ -125,7 +124,7 @@ def worker_wrapper(kwargs) -> List[Tuple[Graph, TemporalEdgeList]]:
 
     Returns
     -------
-    List[Tuple[Graph, TemporalEdgeList]]
+    List[Graph]
         The output of the ELFI patch function.
     """
     return elfi_patch(**kwargs)[0]

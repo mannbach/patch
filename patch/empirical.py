@@ -11,7 +11,6 @@ from netin.utils.constants import (
     MAJORITY_LABEL, CLASS_ATTRIBUTE)
 import pandas as pd
 
-from .temporal_edge_list import TemporalEdgeList
 from .constants import APS, DBLP, APS_CIT, PATH_APS, PATH_DBLP
 
 GENDER_UNKNOWN = 0
@@ -25,7 +24,7 @@ def read_graph(
         source: str, decade: int,
         duration: int = 10,
         folder: Optional[str] = None)\
-            -> Tuple[Graph, TemporalEdgeList]:
+            -> Graph:
     """Read a graph for a given source and decade.
 
     Parameters
@@ -41,7 +40,7 @@ def read_graph(
 
     Returns
     -------
-    Tuple[Graph, TemporalEdgeList]
+    Graph
         The graph and the temporal edge list.
     """
     if source == APS:
@@ -62,13 +61,13 @@ def read_graph(
     raise ValueError(f"Unknown source: {source}")
 
 def read_graph_dblp(folder: str, decade: int, duration: int = 10)\
-    -> Tuple[Graph, TemporalEdgeList]:
+    -> Graph:
     """Read a graph from the DBLP dataset.
 
     Returns
     -------
-    Tuple[Graph, TemporalEdgeList]
-        The graph and the temporal edge list.
+    Graph
+        The DBLP graph.
     """
     df_authors = pd.read_csv(
         os.path.join(folder, "ent.author"),
@@ -139,7 +138,6 @@ def read_graph_dblp(folder: str, decade: int, duration: int = 10)\
                     ascending=True)
     time = -1
     time_last = None
-    edge_times = {}
     for _, row in df_edges.iterrows():
         time_curr = row["timestamp"]
         if time_curr != time_last:
@@ -154,8 +152,6 @@ def read_graph_dblp(folder: str, decade: int, duration: int = 10)\
         if u != v:
             if not graph.has_edge(u, v):
                 graph.add_edge(u, v)
-                edge_times[(u, v)] = time
-                edge_times[(v, u)] = time
 
     nodes_min = BinaryClassNodeVector(
         N=len(graph),
@@ -167,7 +163,7 @@ def read_graph_dblp(folder: str, decade: int, duration: int = 10)\
         CLASS_ATTRIBUTE,
         nodes_min)
 
-    return graph, edge_times
+    return graph
 
 def _read_aps_data(folder: str, include_cit: bool = False)\
     -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, Optional[pd.DataFrame]]:
@@ -193,7 +189,7 @@ def _read_aps_data(folder: str, include_cit: bool = False)\
     return df_authorships, df_publications, df_author_name, df_authors, df_citations
 
 def read_graph_aps(folder: str, decade: int, duration: int = 10)\
-    -> Tuple[Graph, TemporalEdgeList]:
+    -> Graph:
     """Reads a decade snapshot graph from the APS dataset.
 
     This functions removes authors if
@@ -212,8 +208,8 @@ def read_graph_aps(folder: str, decade: int, duration: int = 10)\
 
     Returns
     -------
-    Tuple[Graph, TemporalEdgeList]
-        The graph and the temporal edge list.
+    Graph
+        The APS graph.
     """
     df_authorships, df_publications, df_author_name, df_authors, _ = _read_aps_data(
         folder=folder)
@@ -262,7 +258,6 @@ def read_graph_aps(folder: str, decade: int, duration: int = 10)\
     gb_edges = df_edges.groupby("id_publication")
 
     graph = Graph()
-    edge_times = {}
 
     for x in df_edges["id_author"].unique():
         if not x in map_auth_old_new:
@@ -291,8 +286,6 @@ def read_graph_aps(folder: str, decade: int, duration: int = 10)\
             if u_new != v_new:
                 if not graph.has_edge(u_new, v_new):
                     graph.add_edge(u_new, v_new)
-                    edge_times[(u_new, v_new)] = time
-                    edge_times[(v_new, u_new)] = time
 
     nodes_min = BinaryClassNodeVector(
         N=len(graph),
@@ -304,21 +297,16 @@ def read_graph_aps(folder: str, decade: int, duration: int = 10)\
         CLASS_ATTRIBUTE,
         nodes_min)
 
-    return graph, edge_times
+    return graph
 
 def read_graph_aps_cit(
         folder: str, decade: int, duration: int = 10)\
-    -> Tuple[Graph, TemporalEdgeList]:
+    -> Graph:
     """Creates a decade snapshot citation graph from the APS dataset.
 
     This function removes authors if
     - they were not disambiguated or
     - have no gender information available
-
-    Returns
-    -------
-    Tuple[Graph, TemporalEdgeList]
-        The graph and the temporal edge list.
 
     Parameters
     ----------
@@ -328,6 +316,11 @@ def read_graph_aps_cit(
         The decade for which to read the graph.
     duration : int, optional
         The duration in years for which to create the graph, by default 10.
+
+    Returns
+    -------
+    Graph
+        The APS citation graph.
     """
     df_authorships, df_pub, df_name, df_authors, df_cit = _read_aps_data(
         folder=folder, include_cit=True)
@@ -369,7 +362,6 @@ def read_graph_aps_cit(
                 ascending=True)
 
     graph = Graph()
-    edge_times = {}
 
     map_auth_old_new = {}
     map_auth_new_group = {}
@@ -405,8 +397,6 @@ def read_graph_aps_cit(
             v = map_auth_old_new[id_pub_cited]
             if not graph.has_edge(u, v):
                 graph.add_edge(u, v)
-                edge_times[(u, v)] = time
-                edge_times[(v, u)] = time
 
     nodes_min = BinaryClassNodeVector(
         N=len(graph),
@@ -418,4 +408,4 @@ def read_graph_aps_cit(
         CLASS_ATTRIBUTE,
         nodes_min)
 
-    return graph, edge_times
+    return graph

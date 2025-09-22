@@ -1,14 +1,12 @@
 """This script contains functions to interact with the ELFI inference package.
 """
-from typing import NamedTuple, Callable, Tuple, List, Optional
+from typing import NamedTuple, Callable, List, Optional
 
 import numpy as np
 from netin.models import PATCHModel, CompoundLFM
 from netin.graphs import Graph
-from netin.utils.event_handling import Event
 import elfi
 
-from .temporal_edge_list import TemporalEdgeList
 from .statistics import compute_gini, compute_ei, compute_mann_whitney, compute_gini_maj, compute_gini_min, compute_average_ccf, compute_gini_comp
 from .model_config import ModelConfig
 from .constants import N_NODES_SIM
@@ -17,7 +15,7 @@ def elfi_patch(
         N:int, f_m:float, m: int,
         lfm_global: CompoundLFM, lfm_tc: CompoundLFM,
         h: float, tau: float,
-        random_state: np.random.RandomState) -> List[Tuple[Graph, TemporalEdgeList]]:
+        random_state: np.random.RandomState) -> List[Graph]:
     """Simulate a network using the PATCHModel and return the graph and temporal edge list.
 
     Parameters
@@ -41,19 +39,9 @@ def elfi_patch(
 
     Returns
     -------
-    List[Tuple[Graph, TemporalEdgeList]]
-        A tuple containing the simulated graph and a temporal edge list.
+    List[Graph]
+        A list containing the simulated graph.
     """
-    time = 0
-    t_edges = {}
-
-    # Define a handler for the link addition event to track the time of each link
-    def link_add_handler(source, target):
-        nonlocal time, t_edges
-        t_edges[source, target] = time
-        t_edges[target, source] = time
-        time += 1
-
     model = PATCHModel(
         N=int(N), f_m=float(f_m), m=int(m),
         tau=float(tau), h_M=float(h), h_m=float(h),
@@ -61,35 +49,30 @@ def elfi_patch(
         lfm_tc=CompoundLFM[lfm_tc],
         random_state=random_state)
 
-    model.register_event_handler(
-        event=Event.LINK_ADD_BEFORE,
-        function=link_add_handler
-    )
-
     graph = model.simulate()
-    return [(graph, t_edges)]
+    return [graph]
 
 # Wrapper functions for ELFI summary statistics
-def elfi_gini(res: List[Tuple[Graph, TemporalEdgeList]]) -> float:
-    return np.mean([compute_gini(graph.degrees()) for graph, _ in res])
+def elfi_gini(res: List[Graph]) -> float:
+    return np.mean([compute_gini(graph.degrees()) for graph in res])
 
-def elfi_ei(res: List[Tuple[Graph, TemporalEdgeList]]):
-    return np.mean([(compute_ei(graph) + 1) / 2 for graph, _ in res])
+def elfi_ei(res: List[Graph]):
+    return np.mean([(compute_ei(graph) + 1) / 2 for graph in res])
 
-def elfi_gini_maj(res: List[Tuple[Graph, TemporalEdgeList]]) -> float:
-    return np.mean([compute_gini_maj(graph) for graph, _ in res])
+def elfi_gini_maj(res: List[Graph]) -> float:
+    return np.mean([compute_gini_maj(graph) for graph in res])
 
-def elfi_gini_min(res: List[Tuple[Graph, TemporalEdgeList]]) -> float:
-    return np.mean([compute_gini_min(graph) for graph, _ in res])
+def elfi_gini_min(res: List[Graph]) -> float:
+    return np.mean([compute_gini_min(graph) for graph in res])
 
-def elfi_gini_comp(res: List[Tuple[Graph, TemporalEdgeList]]) -> float:
-    return np.mean([compute_gini_comp(graph) for graph, _ in res])
+def elfi_gini_comp(res: List[Graph]) -> float:
+    return np.mean([compute_gini_comp(graph) for graph in res])
 
-def elfi_mann_whitney(res: List[Tuple[Graph, TemporalEdgeList]]) -> float:
-    return np.mean([compute_mann_whitney(graph) for graph, _ in res])
+def elfi_mann_whitney(res: List[Graph]) -> float:
+    return np.mean([compute_mann_whitney(graph) for graph in res])
 
-def elfi_ccf(res: List[Tuple[Graph, TemporalEdgeList]]) -> np.ndarray:
-    return np.mean([compute_average_ccf(graph) for graph, _ in res])
+def elfi_ccf(res: List[Graph]) -> np.ndarray:
+    return np.mean([compute_average_ccf(graph) for graph in res])
 
 def compute_m(
         graph_empirical: Graph,
@@ -160,9 +143,18 @@ def create_elfi_simulator(
 
 def register_summary_stats_functions(
         simulator: elfi.Simulator,
-        l_observations: Optional[List[Tuple[Graph, TemporalEdgeList]]] = None)\
+        l_observations: Optional[List[Graph]] = None)\
             -> List[elfi.Summary]:
     """Register the summary statistics functions to the ELFI simulator.
+
+    Parameters
+    ----------
+    simulator : elfi.Simulator
+        The ELFI simulator to which the summary statistics functions are registered.
+    l_observations : Optional[List[Graph]], optional
+        The list of observed graphs, by default None.
+        If provided, the summary statistics functions will compute the statistics
+        based on these observations.
 
     Returns
     -------
@@ -222,8 +214,8 @@ def create_pool(summary_f: List[elfi.Summary])\
 class ELFISummaryFunctions(NamedTuple):
     """The summary statistics functions to be used in the ELFI simulator.
     """
-    ei: Callable[[Graph, TemporalEdgeList], float] = elfi_ei
-    gini_min: Callable[[Graph, TemporalEdgeList], float] = elfi_gini_min
-    gini_maj: Callable[[Graph, TemporalEdgeList], float] = elfi_gini_maj
-    mann_whitney: Callable[[Graph, TemporalEdgeList], float] = elfi_mann_whitney
-    ccf: Callable[[Graph, TemporalEdgeList], np.ndarray] = elfi_ccf
+    ei: Callable[[Graph], float] = elfi_ei
+    gini_min: Callable[[Graph], float] = elfi_gini_min
+    gini_maj: Callable[[Graph], float] = elfi_gini_maj
+    mann_whitney: Callable[[Graph], float] = elfi_mann_whitney
+    ccf: Callable[[Graph], np.ndarray] = elfi_ccf
