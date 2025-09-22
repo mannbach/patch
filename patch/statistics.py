@@ -1,6 +1,6 @@
 """Scripts to compute aggregate inequality network statistics.
 """
-from typing import Tuple, Dict, Set
+from typing import Tuple
 
 from netin.utils.constants import CLASS_ATTRIBUTE
 from netin.graphs import Graph, NodeVector
@@ -58,16 +58,52 @@ def compute_gini(degrees: NodeVector) -> float:
     return (n + 1 - 2 * np.sum(cumx) / cumx[-1]) / n
 
 def compute_gini_min(graph: Graph) -> float:
+    """Computes the Gini coefficient for the minority group in the graph.
+
+    Parameters
+    ----------
+    graph : Graph
+        The input graph.
+
+    Returns
+    -------
+    float
+        The gini coefficient for the minority group in the graph.
+    """
     degrees = graph.degrees()
     nodes_min = graph.get_node_class(CLASS_ATTRIBUTE)
     return compute_gini(degrees[nodes_min.get_minority_mask()])
 
 def compute_gini_maj(graph: Graph) -> float:
+    """Computes the Gini coefficient for the majority group in the graph.
+
+    Parameters
+    ----------
+    graph : Graph
+        The input graph.
+
+    Returns
+    -------
+    float
+        The gini coefficient for the majority group in the graph.
+    """
     degrees = graph.degrees()
     nodes_min = graph.get_node_class(CLASS_ATTRIBUTE)
     return compute_gini(degrees[nodes_min.get_majority_mask()])
 
 def compute_gini_comp(graph: Graph) -> float:
+    """Computes the ration of Gini coefficients between minority and majority groups.
+
+    Parameters
+    ----------
+    graph : Graph
+        The input graph.
+
+    Returns
+    -------
+    float
+        The ratio of Gini coefficients between minority and majority groups.
+    """
     degrees = graph.degrees()
     nodes_min = graph.get_node_class(CLASS_ATTRIBUTE)
     if not np.any(nodes_min):
@@ -153,7 +189,25 @@ def compute_contour_lines(
     a_tau: np.ndarray, a_h: np.ndarray,
     percentiles: np.ndarray
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    X, Y = np.meshgrid(
+    """Computes contour lines for the given data.
+
+    Parameters
+    ----------
+    a_tau : np.ndarray
+        Posterior samples of tau parameter.
+        Has to match the shape of `a_h`.
+    a_h : np.ndarray
+        Posterior samples of h parameter.
+        Has to match the shape of `a_tau`.
+    percentiles : np.ndarray
+        Percentiles to compute contour lines for.
+
+    Returns
+    -------
+    Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+        The x and y coordinates of the contour lines, the z values, and the thresholds.
+    """
+    x, y = np.meshgrid(
         np.linspace(0, 1, 250),
         np.linspace(0, 1, 250))
 
@@ -162,26 +216,26 @@ def compute_contour_lines(
         np.vstack([a_tau, a_h]))
 
     # Evaluate KDE on grid
-    Z = kde(np.vstack([X.ravel(), Y.ravel()]))
-    Z = np.reshape(Z, X.shape)
+    z = kde(np.vstack([x.ravel(), y.ravel()]))
+    z = np.reshape(z, x.shape)
 
     # Sort grid points by density in descending order
-    sorted_idx = np.argsort(Z.ravel())[::-1]
-    sorted_Z = Z.ravel()[sorted_idx]
+    sorted_idx = np.argsort(z.ravel())[::-1]
+    sorted_z = z.ravel()[sorted_idx]
 
-    cumulative_Z = np.cumsum(sorted_Z) / np.sum(sorted_Z)
+    cumulative_z = np.cumsum(sorted_z) / np.sum(sorted_z)
 
     thresholds = []
     for percentile in percentiles:
         # Find the index of the threshold value that contains the desired percentile
-        threshold_idx = np.searchsorted(cumulative_Z, percentile)
+        threshold_idx = np.searchsorted(cumulative_z, percentile)
 
-        if threshold_idx < len(sorted_Z):
-            thresholds.append(sorted_Z[threshold_idx])
+        if threshold_idx < len(sorted_z):
+            thresholds.append(sorted_z[threshold_idx])
         else:
-            thresholds.append(sorted_Z[-1])
+            thresholds.append(sorted_z[-1])
 
     return (
-        X, Y, Z,
+        x, y, z,
         np.array(thresholds)
     )

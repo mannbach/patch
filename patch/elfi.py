@@ -7,7 +7,10 @@ from netin.models import PATCHModel, CompoundLFM
 from netin.graphs import Graph
 import elfi
 
-from .statistics import compute_gini, compute_ei, compute_mann_whitney, compute_gini_maj, compute_gini_min, compute_average_ccf, compute_gini_comp
+from .statistics import (
+    compute_gini, compute_ei, compute_mann_whitney,
+    compute_gini_maj, compute_gini_min, compute_average_ccf,
+    compute_gini_comp)
 from .model_config import ModelConfig
 from .constants import N_NODES_SIM
 
@@ -54,24 +57,31 @@ def elfi_patch(
 
 # Wrapper functions for ELFI summary statistics
 def elfi_gini(res: List[Graph]) -> float:
+    """Wrapper for `compute_gini` to be used in ELFI."""
     return np.mean([compute_gini(graph.degrees()) for graph in res])
 
 def elfi_ei(res: List[Graph]):
+    """Wrapper for `compute_ei` to be used in ELFI."""
     return np.mean([(compute_ei(graph) + 1) / 2 for graph in res])
 
 def elfi_gini_maj(res: List[Graph]) -> float:
+    """Wrapper for `compute_gini_maj` to be used in ELFI."""
     return np.mean([compute_gini_maj(graph) for graph in res])
 
 def elfi_gini_min(res: List[Graph]) -> float:
+    """Wrapper for `compute_gini_min` to be used in ELFI."""
     return np.mean([compute_gini_min(graph) for graph in res])
 
 def elfi_gini_comp(res: List[Graph]) -> float:
+    """Wrapper for `compute_gini_comp` to be used in ELFI."""
     return np.mean([compute_gini_comp(graph) for graph in res])
 
 def elfi_mann_whitney(res: List[Graph]) -> float:
+    """Wrapper for `compute_mann_whitney` to be used in ELFI."""
     return np.mean([compute_mann_whitney(graph) for graph in res])
 
 def elfi_ccf(res: List[Graph]) -> np.ndarray:
+    """Wrapper for `compute_average_ccf` to be used in ELFI."""
     return np.mean([compute_average_ccf(graph) for graph in res])
 
 def compute_m(
