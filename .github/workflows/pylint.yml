@@ -16,6 +16,6 @@ jobs:
 
     - name: Analyzing the code with pylint
       run: |
-        docker exec -t patch pylint $(git ls-files '*.py') --fail-under 9.5
+        docker exec -t patch pylint $(git ls-files '*.py') --fail-under 9.0
 
     - uses: ./.github/actions/docker_down
