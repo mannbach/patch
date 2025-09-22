@@ -103,60 +103,6 @@ def compute_mann_whitney(net: Graph) -> float:
 
     return sc.stats.mannwhitneyu(k_min, k_maj).statistic / (len(k_min) * len(k_maj))
 
-def _prepare_forward_neighbors(graph: Graph) -> Dict[int, Set[int]]:
-    """Prepares a dictionary of forward neighbors for each node in the graph.
-
-    Parameters
-    ----------
-    graph : Graph
-        The simulated network.
-
-    Returns
-    -------
-    Dict[int, Set[int]]
-        A dictionary of forward neighbors for each node in the graph.
-    """
-    degrees = graph.degrees()
-    forward = {}
-    for u in graph.nodes():
-        forward[u] = {v for v in graph.neighbors(u)\
-            if (degrees[u] < degrees[v]) or (degrees[u] == degrees[v] and u < v)}
-    return forward
-
-def compute_ccf(graph: Graph, typed: bool = False) -> np.ndarray:
-    degrees = graph.degrees()
-    forward = _prepare_forward_neighbors(graph)
-    nodes_min = graph.get_node_class(CLASS_ATTRIBUTE) if typed else None
-
-    t_count = np.zeros(4 if typed else 1)
-    for u in graph.nodes():
-        for v in forward[u]:
-            for w in forward[u].intersection(forward[v]):
-                t_count[np.sum(nodes_min[(u,v,w)]) if typed else 0] += 1
-
-    # Count total number of connected triplets in the graph.
-    total_triplets = np.zeros_like(t_count)
-    for u in graph.nodes():
-        k = degrees[u]
-        if k >= 2:
-            if typed:
-                u_min = nodes_min[u]
-                k_min = np.sum(nodes_min[forward[u]])
-                k_maj = k - k_min
-
-                total_triplets[u_min + 2] += k_min * (k_min - 1) / 2
-                total_triplets[u_min + 1] += k_min * k_maj
-                total_triplets[u_min] += k_maj * (k_maj - 1) / 2.
-            else:
-                total_triplets[0] += k * (k - 1) / 2
-
-    if not np.any(total_triplets != 0):
-        return np.zeros(1)
-
-    # Global clustering coefficient:
-    global_clustering = (3 * t_count) / total_triplets
-    return global_clustering
-
 def compute_average_ccf(graph: Graph) -> float:
     """Compute the average clustering coefficient (CCF) of the graph.
     The average CCF is the average of the local clustering coefficients of all nodes in the graph.

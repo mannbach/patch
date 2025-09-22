@@ -4,12 +4,24 @@ import pytest
 import numpy as np
 from netin.graphs import Graph
 
-from patch.statistics import compute_ccf, compute_average_ccf
-
-# Language: Python
+from patch.statistics import compute_average_ccf
 
 # A create_fake_graph to simulate minimal Graph functionality for tests.
 def create_fake_graph(nodes: List[int], edges: List[Tuple[int, int]]) -> Graph:
+    """Creates a fake graph for testing purposes.
+
+    Parameters
+    ----------
+    nodes : List[int]
+        Nodes to add to the graph.
+    edges : List[Tuple[int, int]]
+        Edges to add to the graph.
+
+    Returns
+    -------
+    Graph
+        A Graph object representing the fake graph.
+    """
     graph = Graph()
     for node in nodes:
         graph.add_node(node)
@@ -22,8 +34,6 @@ def test_ccf_empty():
     graph = create_fake_graph([], [])
 
     with pytest.raises(ValueError):
-        compute_ccf(graph)
-    with pytest.raises(ValueError):
         compute_average_ccf(graph)
 
 def test_ccf_triangle():
@@ -32,10 +42,8 @@ def test_ccf_triangle():
     nodes = [0, 1, 2]
     edges = [(0, 1), (1, 2), (0, 2)]
     graph = create_fake_graph(nodes, edges)
-    result_global = compute_ccf(graph)
     result_average = compute_average_ccf(graph)
     expected = 1.0
-    assert np.isclose(result_global, expected, atol=1e-6)
     assert np.isclose(result_average, expected, atol=1e-6)
 
 def test_ccf_line3():
@@ -43,12 +51,10 @@ def test_ccf_line3():
     nodes = [0, 1, 2]
     edges = [(0, 1), (1, 2)]
     graph = create_fake_graph(nodes, edges)
-    result_global = compute_ccf(graph)
     result_average = compute_average_ccf(graph)
     # total_triplets: only node 1 contributes: (2*1)/2 = 1, t_count = 0 => CCF = 0.0.
     expected = 0.0
-    print(f"CCF for line graph: {result_global}, {result_average}")
-    assert np.isclose(result_global, expected, atol=1e-6)
+    print(f"CCF for line graph: {result_average}")
     assert np.isclose(result_average, expected, atol=1e-6)
 
 def test_ccf_tri_plus_one():
@@ -56,7 +62,6 @@ def test_ccf_tri_plus_one():
     nodes = [0, 1, 2, 3]
     edges = [(0, 1), (1, 2), (0, 2), (2, 3)]
     graph = create_fake_graph(nodes, edges)
-    result_global = compute_ccf(graph)
     result_average = compute_average_ccf(graph)
 
     # Expected average CCF:
@@ -66,10 +71,4 @@ def test_ccf_tri_plus_one():
     # Average should be 1/4 * (1 + 1 + 0 + 1/3) = 7/12
     expected_average = 7 / 12
 
-    # Expected global CCF:
-    # Total triplets: 3 (from triangle) + 2 (node 3 with node 0 and 1 via node 2) = 5
-    # Triangle count: 1
-    expected_global = (3 * 1) / 5
-
     assert np.isclose(result_average, expected_average, atol=1e-6)
-    assert np.isclose(result_global[0], expected_global, atol=1e-6)
