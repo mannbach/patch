@@ -1,0 +1,9 @@
+name: Close docker image
+
+runs:
+  using: "composite"
+  steps:
+      - name: Stop containers
+        shell: bash -l {0}
+        if: always()
+        run: docker compose --env-file config/sample.env down
