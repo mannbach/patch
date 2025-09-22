@@ -32,13 +32,15 @@ def create_fake_graph(nodes: List[int], edges: List[Tuple[int, int]]) -> Graph:
     return graph
 
 def test_ccf_empty():
-    # Graph with no nodes should throw a ValueError.
+    """Graph with no nodes should throw a ValueError."""
     graph = create_fake_graph([], [])
 
     with pytest.raises(ValueError):
         compute_average_ccf(graph)
 
 def test_ccf_triangle():
+    """Tests the average clustering coefficient for a triangle graph.
+    """
     # Triangle graph: 3 nodes fully connected.
     # Expected global clustering: each node forms one
     # triplet -> total_triplets = 3 and t_count = 1, so CCF=(3*1)/3=1.0.
@@ -50,6 +52,8 @@ def test_ccf_triangle():
     assert np.isclose(result_average, expected, atol=1e-6)
 
 def test_ccf_line3():
+    """Tests the average clustering coefficient for a line graph with 3 nodes.
+    """
     # Line graph: nodes: 0-1-2, only one triplet at the middle node but no triangle (t_count = 0).
     nodes = [0, 1, 2]
     edges = [(0, 1), (1, 2)]
@@ -61,6 +65,8 @@ def test_ccf_line3():
     assert np.isclose(result_average, expected, atol=1e-6)
 
 def test_ccf_tri_plus_one():
+    """Tests the average clustering coefficient for a triangle plus one node graph.
+    """
     # Test a triangle with one additional node connected to one of the triangle nodes.
     nodes = [0, 1, 2, 3]
     edges = [(0, 1), (1, 2), (0, 2), (2, 3)]
