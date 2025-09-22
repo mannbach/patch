@@ -16,7 +16,7 @@ from patch.constants import (
     PATH_INFERENCE_PREDICTIVE,
     N_SAMPLES_PREDICTIVE, N_NODES_SIM,
     L_LFM_GLOBAL, L_LFM_LOCAL,
-    N_ROUNDS, APS, DBLP, APS_CIT)
+    APS, DBLP, APS_CIT)
 from patch.elfi import (
     ELFISummaryFunctions)
 from patch.model_config import ModelConfig
