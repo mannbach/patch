@@ -54,7 +54,7 @@ class ModelConfig:
     """
     N: int
     m: int
-    minority_fraction: float
+    f_m: float
     homophily: float
     tau: float
     lfm_global: _LFMValidator = _LFMValidator()
@@ -75,18 +75,19 @@ class ModelConfig:
         ModelConfig
             The configuration object.
         """
+        assert d["h_m"] == d["h_M"], "Homophily values must be identical."
         return cls(
             N=d["N"],
             m=d["m"],
-            minority_fraction=d["minority_fraction"],
-            homophily=d["homophily"],
+            f_m=d["f_m"],
+            homophily=d["h_m"],
             tau=d["tau"],
             lfm_global=d["lfm_global"],
             lfm_tc=d["lfm_tc"],
             realization=d["realization"]
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, stringify: bool = False, split_homophily: bool = False) -> Dict[str, Any]:
         """Converts the configuration to a dictionary.
 
         Returns
@@ -94,4 +95,13 @@ class ModelConfig:
         Dict[str, Any]
             The configuration dictionary.
         """
-        return asdict(self)
+        d = asdict(self)
+        h = self.homophily
+        if split_homophily:
+            d["h_M"] = h
+            d["h_m"] = h
+            del d["homophily"]
+        if stringify:
+            d["lfm_global"] = self.lfm_global.value
+            d["lfm_tc"] = self.lfm_tc.value
+        return d

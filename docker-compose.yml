@@ -10,6 +10,7 @@ services:
       - '${PATH_THIS_CONFIG:-./config/sample.env}'
     volumes:
       - '.:/patch'
+      - '../NetworkInequalities:/NetworkInequalities'
       - '${PATH_HOST_DATA:-./data/}:${PATH_CONTAINER_DATA:-/mnt/data}' # Default "./data/"
       - '${PATH_HOST_OUTPUT:-./output/}:${PATH_CONTAINER_OUTPUT:-/mnt/output/}'
 volumes:

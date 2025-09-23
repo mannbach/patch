@@ -1,18 +1,22 @@
+"""Computes aggregate statistics for all graphs in a folder using multiprocessing and stores the results in a CSV file.
+"""
 from multiprocessing import Queue, Process
 from queue import Empty
 from argparse import ArgumentParser
-from typing import Dict, Any, NamedTuple
+from typing import Dict, Any, List
 import csv
 import os
 import json
+import dataclasses
 
 import numpy as np
+from netin.utils.constants import CLASS_ATTRIBUTE
 
 from patch.constants import\
     STOP_SIGNAL, PATH_GRAPHS, PATH_STATISTICS
 from patch.io import read_graph_from_json
 from patch.model_config import ModelConfig
-from patch.statistics import compute_gini, compute_ei, compute_mann_whitney
+from patch.statistics import compute_gini, compute_gini_maj, compute_gini_min, compute_ei, compute_mann_whitney
 
 def parse_args() -> Dict[str, Any]:
     """Parses the command line arguments.
@@ -33,14 +37,43 @@ def parse_args() -> Dict[str, Any]:
 
     return d_a
 
-class StatsResult(NamedTuple):
+@dataclasses.dataclass
+class StatsResult:
     """Provides a named tuple to store the results of the aggregate statistics.
     """
     model_config: ModelConfig
     gini: float
     ei: float
     mann_whitney: float
+    gini_min: float
+    gini_maj: float
     json_data: str = None
+
+    _CSV_FIELDS_STATS = ("gini", "ei", "mann_whitney", "gini_min", "gini_maj")
+
+    @staticmethod
+    def get_csv_fields() -> List[str]:
+        return tuple(field.name\
+            for field in dataclasses.fields(ModelConfig)) + StatsResult._CSV_FIELDS_STATS
+
+    def get_csv_values(self) -> List[Any]:
+        """Returns the values to be written to the CSV file.
+
+        Returns
+        -------
+        List[Any]
+            The values to be written to the CSV file.
+        """
+        l_vals = []
+
+        d_config = self.model_config.to_dict(stringify=True)
+        for field in dataclasses.fields(ModelConfig):
+            l_vals.append(d_config[field.name])
+
+        for field in StatsResult._CSV_FIELDS_STATS:
+            l_vals.append(getattr(self, field))
+
+        return l_vals
 
 class NpEncoder(json.JSONEncoder):
     """Encoder for numpy types to be used in json.dumps.
@@ -54,9 +87,14 @@ class NpEncoder(json.JSONEncoder):
             return obj.tolist()
         return super().default(obj)
 
-def work(queue_tasks: Queue, queue_results: Queue, folder_graphs: str):
+def work(
+        queue_tasks: Queue,
+        queue_results: Queue,
+        folder_graphs: str):
     """Works on tasks from the queue_tasks and stores the results in the queue_results.
-    For each task, the graph is loaded from the specified file, the aggregate statistics are computed and stored in the results queue.
+    For each task, the graph is loaded from the specified file,
+    the aggregate statistics are computed and
+    stored in the results queue.
 
     Parameters
     ----------
@@ -80,19 +118,19 @@ def work(queue_tasks: Queue, queue_results: Queue, folder_graphs: str):
         print(f"Working on ({i}) {task}")
 
         # Generate the graph
-        graph, data = read_graph_from_json(
+        model_config, graph = read_graph_from_json(
             os.path.join(folder_graphs, file_graph))
 
-
-        # Store minority nodes in a set
-        model_config = ModelConfig.from_dict(data)
+        degrees = graph.degrees()
 
         # Compute the aggregate statistics
         stats = StatsResult(
             model_config=model_config,
-            gini=compute_gini(graph),
+            gini=compute_gini(degrees),
             ei=compute_ei(graph),
-            mann_whitney=compute_mann_whitney(graph)
+            mann_whitney=compute_mann_whitney(graph),
+            gini_min=compute_gini_min(graph),
+            gini_maj=compute_gini_maj(graph)
         )
 
         # Put stats and JSON string into results queue
@@ -129,14 +167,14 @@ def main():
     with open(args.path_results, 'w+', encoding="utf-8") as file:
         csv_writer = csv.writer(file)
         # Write CSV header
-        csv_writer.writerow(StatsResult._fields)
+        csv_writer.writerow(StatsResult.get_csv_fields())
 
         # Write until number of expected results reached
         while n_combs > 0:
             stats = queue_results.get()
 
             # Write JSON graph to file
-            csv_writer.writerow(stats)
+            csv_writer.writerow(stats.get_csv_values())
 
             n_combs -= 1
 

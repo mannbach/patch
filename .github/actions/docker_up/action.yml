@@ -1,0 +1,14 @@
+name: Build and run docker image
+
+runs:
+  using: "composite"
+  steps:
+    - name: Copy env file
+      shell: bash -l {0}
+      run: cp config/sample.env config/.env
+    - name: Building container
+      shell: bash -l {0}
+      run: docker compose --env-file config/sample.env build
+    - name: Starting container
+      shell: bash -l {0}
+      run: docker compose --env-file config/sample.env up -d

@@ -1,0 +1,258 @@
+"""Performs validation of the ELFI-based inference method.
+"""
+from typing import Any, Dict, List
+from argparse import ArgumentParser
+import os
+from itertools import product
+from multiprocessing import Pool
+
+import elfi
+import numpy as np
+from netin.utils.constants import CLASS_ATTRIBUTE
+from netin.graphs import Graph
+
+from patch.constants import (
+    PATH_INFERENCE_VALIDATION,
+    N_SAMPLES, N_NODES_SIM,
+    L_HOMOPHILY, L_TAU,
+    L_LFM_GLOBAL, L_LFM_LOCAL,
+    N_REALIZATIONS, N_ROUNDS,
+    F, M)
+from patch.elfi import (
+    elfi_patch,
+    compute_m, create_elfi_simulator, register_summary_stats_functions,
+    register_sampler, create_pool)
+from patch.model_config import ModelConfig
+
+def parse_args() -> Dict[str, Any]:
+    """Parses the command line arguments.
+
+    Returns
+    -------
+    Dict[str, Any]
+        The parsed arguments.
+    """
+    ap = ArgumentParser("ELFI validation")
+
+    ap.add_argument("--prefix", type=str, default="")
+
+    ap.add_argument("--path-results", "-pr",
+                    default=PATH_INFERENCE_VALIDATION, type=str)
+    ap.add_argument("--n-processes", default=1, type=int)
+    # Flag to store simulation data
+    ap.add_argument("--store-sim-data", action="store_true")
+    ap.add_argument("--n-rounds-smc", default=N_ROUNDS, type=int)
+
+    # Add h_true, tau_true and n_samples as arguments
+    ap.add_argument("--h-true",
+                    nargs="+", type=float, default=L_HOMOPHILY)
+    ap.add_argument("--tau-true",
+                    nargs="+", type=float, default=L_TAU)
+
+    ap.add_argument("-lfm-global-true",
+                    type=str, choices=L_LFM_GLOBAL,
+                    nargs="+", default=L_LFM_GLOBAL)
+    ap.add_argument("-lfm-tc-true",
+                    type=str, choices=L_LFM_LOCAL,
+                    nargs="+", default=L_LFM_LOCAL)
+
+    ap.add_argument("-lfm-global-inf", type=str,
+        choices=L_LFM_GLOBAL, nargs="+", default=L_LFM_GLOBAL)
+    ap.add_argument("-lfm-tc-inf", type=str,
+        choices=L_LFM_LOCAL, nargs="+", default=L_LFM_LOCAL)
+
+    d_a = ap.parse_args()
+
+    return d_a
+
+def create_true_config_folder_path(
+        args: Dict[str, Any],
+        h_true: float, tau_true: float,
+        lfm_global_true: str, lfm_tc_true: str):
+    """Creates the folder path for the true configuration.
+
+    Parameters
+    ----------
+    args : Dict[str, Any]
+        The command line arguments.
+    h_true : float
+        The true homophily parameter.
+    tau_true : float
+        The true tau parameter.
+    lfm_global_true : str
+        The true global link formation mechanism.
+    lfm_tc_true : str
+        The true local link formation mechanism.
+
+    Returns
+    -------
+    str
+        The folder path for the true configuration.
+    """
+    return os.path.join(
+        args.path_results,
+        (f"{args.prefix}"
+         f"lfm-g-true-{lfm_global_true}_lfm-t-true-{lfm_tc_true}_"
+         f"h-true-{h_true}_tau-true-{tau_true}"
+         "/"))
+
+def create_inf_folder_name(
+        lfm_global_inf: str, lfm_tc_inf: str):
+    """Creates the folder name for the inferred configuration.
+
+    Parameters
+    ----------
+    lfm_global_inf : str
+        The inferred global link formation mechanism.
+    lfm_tc_inf : str
+        The inferred local link formation mechanism.
+
+    Returns
+    -------
+    str
+        The folder name for the inferred configuration.
+    """
+    return f"lfm-g-inf-{lfm_global_inf}_lfm-t-inf-{lfm_tc_inf}/"
+
+def worker_wrapper(kwargs) -> List[Graph]:
+    """Wraps the ELFI patch function for multiprocessing.
+
+    Parameters
+    ----------
+    kwargs : _any
+        The keyword arguments for the ELFI patch function.
+
+    Returns
+    -------
+    List[Graph]
+        The output of the ELFI patch function.
+    """
+    return elfi_patch(**kwargs)[0]
+
+def main():
+    """Performs validation of the ELFI-based inference method.
+    From the specified true parameters, simulates networks,
+    performs inference, and stores the results.
+    """
+    print("ELFI validation\nParsing args...")
+    args = parse_args()
+
+    print(f"Setting `n_processes` to {args.n_processes}")
+    elfi.set_client('multiprocessing',
+                     num_processes=args.n_processes)
+
+    np.random.seed(0)
+
+    _n_combin = len(args.h_true) * len(args.tau_true)\
+        * len(args.lfm_global_true) * len(args.lfm_tc_true)\
+        * len(args.lfm_global_inf) * len(args.lfm_tc_inf)
+    _run = 0
+    print((
+        f"Running for a total of "
+        f"{_n_combin} combinations"))
+    for h_true, tau_true, lfm_global_true, lfm_tc_true\
+        in product(args.h_true, args.tau_true, args.lfm_global_true, args.lfm_tc_true):
+        print((
+            f"\tRunning true config h={h_true}, tau={tau_true}, "
+            f"lfm_global={lfm_global_true}, lfm_tc={lfm_tc_true}..."))
+        try:
+            model_config = ModelConfig(
+                N=N_NODES_SIM, f_m=F, m=M,
+                realization=-1, # Will be ignored
+                homophily=h_true, tau=tau_true,
+                lfm_global=lfm_global_true, lfm_tc=lfm_tc_true)
+        except ValueError as e:
+            _run += len(args.lfm_global_inf) * len(args.lfm_tc_inf)
+            print(f"\tSkipping combination: {e} ({_run} runs...)")
+            continue
+
+        print(f"\tSimulating observed graph ({N_REALIZATIONS} times)...")
+        l_obs = None
+        jobs = [{"N": N_NODES_SIM,
+                 "f_m": F,
+                 "m": M,
+                 "lfm_global": lfm_global_true,
+                 "lfm_tc": lfm_tc_true,
+                 "h": h_true,
+                 "tau": tau_true,
+                 "random_state": i}\
+                    for i in range(N_REALIZATIONS)]
+        with Pool(args.n_processes) as pool:
+            l_obs = pool.map(worker_wrapper, jobs)
+        l_nodes_min = [graph_obs.get_node_class(CLASS_ATTRIBUTE) for graph_obs, _ in l_obs]
+
+        m = max(2, np.rint(np.median(
+            [compute_m(graph_empirical=graph_obs)\
+             for graph_obs, _ in l_obs])))
+        f_m = np.mean(l_nodes_min)
+
+        print("Starting inference...")
+        for lfm_global_inf, lfm_tc_inf in product(args.lfm_global_inf, args.lfm_tc_inf):
+            _run +=1
+            print(f"\t\tRun {_run}/{_n_combin}")
+            print((
+                f"\t\tCreating simulator (`N={N_NODES_SIM}, m={m}, f_m={f_m:.2f}, "
+                f"lfm_global={lfm_global_inf}, lfm_tc={lfm_tc_inf}`)..."))
+            try:
+                model_config = ModelConfig(
+                    N=N_NODES_SIM, f_m=F, m=M,
+                    realization=-1, # Will be ignored
+                    homophily=-1, tau=-1, # Will be ignored
+                    lfm_global=lfm_global_inf, lfm_tc=lfm_tc_inf)
+            except ValueError as e:
+                print(f"\tSkipping combination: {e}")
+                continue
+
+            simulator = create_elfi_simulator(
+                model_config=model_config)
+
+            # Define summary statistics
+            summary_f = register_summary_stats_functions(
+                simulator, l_observations=l_obs)
+
+            sampler = register_sampler(
+                summary_sim=summary_f,
+                pool=create_pool(summary_f))
+            print("\t\tRunning sampling (this might take a while)...")
+            # sample = sampler.sample(
+                # N_SAMPLES, [0.7, 0.2, 0.05])
+            sample = sampler.sample(
+                N_SAMPLES, args.n_rounds_smc)
+
+            file_posteriors = os.path.join(
+                create_true_config_folder_path(
+                    args=args,
+                    h_true=h_true, tau_true=tau_true,
+                    lfm_global_true=lfm_global_true, lfm_tc_true=lfm_tc_true),
+                create_inf_folder_name(
+                    lfm_global_inf=lfm_global_inf, lfm_tc_inf=lfm_tc_inf),
+                "posteriors.npz")
+            if not os.path.exists(os.path.dirname(file_posteriors)):
+                os.makedirs(os.path.dirname(file_posteriors))
+            print(f"\t\tSaving posteriors to `{file_posteriors}`...")
+            np.savez(
+                file=file_posteriors,
+                h=sample.samples["h"],
+                tau=sample.samples["tau"],
+                discrepancies=sample.discrepancies,
+                distance_weights=sample.adaptive_distance_w)
+
+        file_true_summary = os.path.join(
+            create_true_config_folder_path(
+                args=args,
+                h_true=h_true, tau_true=tau_true,
+                lfm_global_true=lfm_global_true, lfm_tc_true=lfm_tc_true),
+            "summary.npz")
+        if not os.path.exists(os.path.dirname(file_posteriors)):
+            os.makedirs(os.path.dirname(file_posteriors))
+        print(f"\tSaving summary statistics for true graph to `{file_true_summary}`...")
+        np.savez(
+            file=file_true_summary,
+            h_true=h_true,
+            tau_true=tau_true,
+            lfm_global_true=lfm_global_true,
+            lfm_tc_true=lfm_tc_true,
+            **{summary.name: summary.observed for summary in summary_f})
+
+if __name__ == "__main__":
+    main()

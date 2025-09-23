@@ -1,0 +1,21 @@
+name: Pytest
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+    - name: Check out repository code
+      uses: actions/checkout@v3
+
+    - uses: ./.github/actions/docker_up
+
+    - name: Testing the code
+      run: |
+        docker exec -t patch pytest tests
+
+    - uses: ./.github/actions/docker_down

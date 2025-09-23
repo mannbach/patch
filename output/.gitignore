@@ -1,3 +1,5 @@
 *
 !.gitignore
 !plots/.gitkeep
+!posteriors/.gitignore
+!stats/

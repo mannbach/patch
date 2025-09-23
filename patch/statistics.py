@@ -4,11 +4,10 @@ from typing import Tuple
 
 from netin.utils.constants import CLASS_ATTRIBUTE
 from netin.graphs import Graph, NodeVector
-
 import numpy as np
 import scipy as sc
 
-def compute_ei(net: Graph) -> Tuple[float, float]:
+def compute_ei(net: Graph) -> float:
     """Compute the EI index of the network as a measure of network segregation.
 
     Parameters
@@ -24,7 +23,7 @@ def compute_ei(net: Graph) -> Tuple[float, float]:
         Values close to -1 indicate segregation, as nodes prefer to connect their own group.
     """
     cnt_mM, cnt_mm, cnt_MM = 0, 0, 0
-    nodes_min = net.get_node_class(CLASS_ATTRIBUTE)
+    nodes_min = net.get_node_class(CLASS_ATTRIBUTE).get_minority_mask()
 
     for u,v in net.edges():
         u_min, v_min = nodes_min[u], nodes_min[v]
@@ -58,8 +57,63 @@ def compute_gini(degrees: NodeVector) -> float:
 
     return (n + 1 - 2 * np.sum(cumx) / cumx[-1]) / n
 
+def compute_gini_min(graph: Graph) -> float:
+    """Computes the Gini coefficient for the minority group in the graph.
+
+    Parameters
+    ----------
+    graph : Graph
+        The input graph.
+
+    Returns
+    -------
+    float
+        The gini coefficient for the minority group in the graph.
+    """
+    degrees = graph.degrees()
+    nodes_min = graph.get_node_class(CLASS_ATTRIBUTE)
+    return compute_gini(degrees[nodes_min.get_minority_mask()])
+
+def compute_gini_maj(graph: Graph) -> float:
+    """Computes the Gini coefficient for the majority group in the graph.
+
+    Parameters
+    ----------
+    graph : Graph
+        The input graph.
+
+    Returns
+    -------
+    float
+        The gini coefficient for the majority group in the graph.
+    """
+    degrees = graph.degrees()
+    nodes_min = graph.get_node_class(CLASS_ATTRIBUTE)
+    return compute_gini(degrees[nodes_min.get_majority_mask()])
+
+def compute_gini_comp(graph: Graph) -> float:
+    """Computes the ration of Gini coefficients between minority and majority groups.
+
+    Parameters
+    ----------
+    graph : Graph
+        The input graph.
+
+    Returns
+    -------
+    float
+        The ratio of Gini coefficients between minority and majority groups.
+    """
+    degrees = graph.degrees()
+    nodes_min = graph.get_node_class(CLASS_ATTRIBUTE)
+    if not np.any(nodes_min):
+        return 1.0
+    return compute_gini(degrees[nodes_min.get_minority_mask()]) /\
+              compute_gini(degrees[nodes_min.get_majority_mask()])
+
 def compute_mann_whitney(net: Graph) -> float:
-    """Computes the Mann-Whitney U test statistic for the degree distribution of the minority and majority groups.
+    """Computes the Mann-Whitney U test statistic for the degree distribution
+    of the minority and majority groups.
 
     Parameters
     ----------
@@ -78,6 +132,110 @@ def compute_mann_whitney(net: Graph) -> float:
     nodes_min = net.get_node_class(CLASS_ATTRIBUTE)
     degrees = net.degrees()
 
-    k_min, k_maj = degrees[nodes_min], degrees[~nodes_min]
+    k_min, k_maj = degrees[nodes_min.get_minority_mask()],\
+        degrees[nodes_min.get_majority_mask()]
 
     return sc.stats.mannwhitneyu(k_min, k_maj).statistic / (len(k_min) * len(k_maj))
+
+def compute_average_ccf(graph: Graph) -> float:
+    """Compute the average clustering coefficient (CCF) of the graph.
+    The average CCF is the average of the local clustering coefficients of all nodes in the graph.
+
+    Parameters
+    ----------
+    graph : Graph
+        The input graph.
+
+    Returns
+    -------
+    float
+        The average clustering coefficient (CCF) of the graph.
+    """
+    degrees = graph.degrees()
+    count_triangles = NodeVector(len(graph), dtype=int)
+    for u, v in graph.edges():
+        for w in graph.neighbors(u).intersection(graph.neighbors(v)):
+            count_triangles[u] += 1
+            count_triangles[v] += 1
+            count_triangles[w] += 1
+    mask_degree = degrees.vals() >= 2
+
+    local_ccf = NodeVector.from_ndarray(
+        np.zeros(len(graph), dtype=float))
+
+    # Compute the local CCF for all nodes with degree >= 2
+    local_ccf[mask_degree] = 2 * (count_triangles[mask_degree] / 3)\
+        / (degrees[mask_degree] * (degrees[mask_degree] - 1))
+    return np.mean(local_ccf)
+
+def get_cdf(data: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    """Computes the cumulative distribution function (CDF) of the data.
+
+    Parameters
+    ----------
+    data : np.ndarray
+        The data to compute the CDF for.
+
+    Returns
+    -------
+    Tuple[np.ndarray, np.ndarray]
+        The x and y values of the CDF.
+    """
+    sorted_data = np.sort(data)
+    yvals = np.arange(len(sorted_data)) / float(len(sorted_data))
+    return sorted_data, yvals
+
+def compute_contour_lines(
+    a_tau: np.ndarray, a_h: np.ndarray,
+    percentiles: np.ndarray
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Computes contour lines for the given data.
+
+    Parameters
+    ----------
+    a_tau : np.ndarray
+        Posterior samples of tau parameter.
+        Has to match the shape of `a_h`.
+    a_h : np.ndarray
+        Posterior samples of h parameter.
+        Has to match the shape of `a_tau`.
+    percentiles : np.ndarray
+        Percentiles to compute contour lines for.
+
+    Returns
+    -------
+    Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+        The x and y coordinates of the contour lines, the z values, and the thresholds.
+    """
+    x, y = np.meshgrid(
+        np.linspace(0, 1, 250),
+        np.linspace(0, 1, 250))
+
+    # Create kernel density estimate
+    kde = sc.stats.gaussian_kde(
+        np.vstack([a_tau, a_h]))
+
+    # Evaluate KDE on grid
+    z = kde(np.vstack([x.ravel(), y.ravel()]))
+    z = np.reshape(z, x.shape)
+
+    # Sort grid points by density in descending order
+    sorted_idx = np.argsort(z.ravel())[::-1]
+    sorted_z = z.ravel()[sorted_idx]
+
+    cumulative_z = np.cumsum(sorted_z) / np.sum(sorted_z)
+
+    thresholds = []
+    for percentile in percentiles:
+        # Find the index of the threshold value that contains the desired percentile
+        threshold_idx = np.searchsorted(cumulative_z, percentile)
+
+        if threshold_idx < len(sorted_z):
+            thresholds.append(sorted_z[threshold_idx])
+        else:
+            thresholds.append(sorted_z[-1])
+
+    return (
+        x, y, z,
+        np.array(thresholds)
+    )
