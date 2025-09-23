@@ -1,4 +1,6 @@
-from typing import Any, Dict
+"""Performs validation of the ELFI-based inference method.
+"""
+from typing import Any, Dict, List
 from argparse import ArgumentParser
 import os
 from itertools import product
@@ -7,6 +9,7 @@ from multiprocessing import Pool
 import elfi
 import numpy as np
 from netin.utils.constants import CLASS_ATTRIBUTE
+from netin.graphs import Graph
 
 from patch.constants import (
     PATH_INFERENCE_VALIDATION,
@@ -66,6 +69,26 @@ def create_true_config_folder_path(
         args: Dict[str, Any],
         h_true: float, tau_true: float,
         lfm_global_true: str, lfm_tc_true: str):
+    """Creates the folder path for the true configuration.
+
+    Parameters
+    ----------
+    args : Dict[str, Any]
+        The command line arguments.
+    h_true : float
+        The true homophily parameter.
+    tau_true : float
+        The true tau parameter.
+    lfm_global_true : str
+        The true global link formation mechanism.
+    lfm_tc_true : str
+        The true local link formation mechanism.
+
+    Returns
+    -------
+    str
+        The folder path for the true configuration.
+    """
     return os.path.join(
         args.path_results,
         (f"{args.prefix}"
@@ -75,12 +98,42 @@ def create_true_config_folder_path(
 
 def create_inf_folder_name(
         lfm_global_inf: str, lfm_tc_inf: str):
-    return (f"lfm-g-inf-{lfm_global_inf}_lfm-t-inf-{lfm_tc_inf}/")
+    """Creates the folder name for the inferred configuration.
 
-def worker_wrapper(kwargs):
+    Parameters
+    ----------
+    lfm_global_inf : str
+        The inferred global link formation mechanism.
+    lfm_tc_inf : str
+        The inferred local link formation mechanism.
+
+    Returns
+    -------
+    str
+        The folder name for the inferred configuration.
+    """
+    return f"lfm-g-inf-{lfm_global_inf}_lfm-t-inf-{lfm_tc_inf}/"
+
+def worker_wrapper(kwargs) -> List[Graph]:
+    """Wraps the ELFI patch function for multiprocessing.
+
+    Parameters
+    ----------
+    kwargs : _any
+        The keyword arguments for the ELFI patch function.
+
+    Returns
+    -------
+    List[Graph]
+        The output of the ELFI patch function.
+    """
     return elfi_patch(**kwargs)[0]
 
 def main():
+    """Performs validation of the ELFI-based inference method.
+    From the specified true parameters, simulates networks,
+    performs inference, and stores the results.
+    """
     print("ELFI validation\nParsing args...")
     args = parse_args()
 

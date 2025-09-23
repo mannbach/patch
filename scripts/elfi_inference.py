@@ -1,3 +1,5 @@
+"""Performs inference using ELFI for the specified dataset and parameters.
+"""
 from argparse import ArgumentParser
 from typing import Any, Dict
 import os
@@ -50,12 +52,33 @@ def parse_args() -> Dict[str, Any]:
 
 def create_folder_name(
         args, lfm_global: str, lfm_tc: str, decade: int):
+    """Creates the folder name for storing simulation results.
+
+    Parameters
+    ----------
+    args : _type_
+        Command line arguments.
+    lfm_global : str
+        Global link formation mechanism model.
+    lfm_tc : str
+        Local link formation mechanism model.
+    decade : int
+        Decade for the data.
+
+    Returns
+    -------
+    str
+        The folder name for storing inference results.
+    """
     return os.path.join(
         args.path_results,
         args.source + "/",
         f"{args.prefix}lfm-g-{lfm_global}_lfm-t-{lfm_tc}_d-{decade}/")
 
 def main():
+    """For the specified dataset and parameters,
+    performs inference using ELFI and stores the results.
+    """
     print("ELFI inference\nParsing args...")
     args = parse_args()
 

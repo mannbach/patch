@@ -1,3 +1,5 @@
+"""Computes aggregate statistics for all graphs in a folder using multiprocessing and stores the results in a CSV file.
+"""
 from multiprocessing import Queue, Process
 from queue import Empty
 from argparse import ArgumentParser
@@ -51,9 +53,17 @@ class StatsResult:
 
     @staticmethod
     def get_csv_fields() -> List[str]:
-        return tuple(field.name for field in dataclasses.fields(ModelConfig)) + StatsResult._CSV_FIELDS_STATS
+        return tuple(field.name\
+            for field in dataclasses.fields(ModelConfig)) + StatsResult._CSV_FIELDS_STATS
 
     def get_csv_values(self) -> List[Any]:
+        """Returns the values to be written to the CSV file.
+
+        Returns
+        -------
+        List[Any]
+            The values to be written to the CSV file.
+        """
         l_vals = []
 
         d_config = self.model_config.to_dict(stringify=True)
@@ -77,9 +87,14 @@ class NpEncoder(json.JSONEncoder):
             return obj.tolist()
         return super().default(obj)
 
-def work(queue_tasks: Queue, queue_results: Queue, folder_graphs: str):
+def work(
+        queue_tasks: Queue,
+        queue_results: Queue,
+        folder_graphs: str):
     """Works on tasks from the queue_tasks and stores the results in the queue_results.
-    For each task, the graph is loaded from the specified file, the aggregate statistics are computed and stored in the results queue.
+    For each task, the graph is loaded from the specified file,
+    the aggregate statistics are computed and
+    stored in the results queue.
 
     Parameters
     ----------
@@ -107,7 +122,6 @@ def work(queue_tasks: Queue, queue_results: Queue, folder_graphs: str):
             os.path.join(folder_graphs, file_graph))
 
         degrees = graph.degrees()
-        nodes_min = graph.get_node_class(CLASS_ATTRIBUTE)
 
         # Compute the aggregate statistics
         stats = StatsResult(
