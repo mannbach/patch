@@ -46,8 +46,8 @@ def elfi_patch(
         A list containing the simulated graph.
     """
     model = PATCHModel(
-        N=int(N), f_m=float(f_m), m=int(m),
-        tau=float(tau), h_M=float(h), h_m=float(h),
+        n=int(N), f_m=float(f_m), m=int(m),
+        tau=float(tau), h_MM=float(h), h_mm=float(h),
         lfm_global=CompoundLFM[lfm_global],
         lfm_tc=CompoundLFM[lfm_tc],
         random_state=random_state)

@@ -91,7 +91,7 @@ def _work(
 
         i, decade, model_config = task
         patch = PATCHModel(
-            **model_config.to_dict(split_homophily=True),
+            **model_config.to_dict(patch_model=True),
             seed=i
         )
         graph = patch.simulate()

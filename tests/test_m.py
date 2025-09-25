@@ -10,12 +10,14 @@ def test_compute_m():
     for n in [10, 100, 1000, 5000]:
         for m in [2, 4, 8]:
             model = PATCHModel(
+                n=n,
                 f_m=.2,
-                N=n,
                 m=m,
                 tau=0.,
                 lfm_global=CompoundLFM.UNIFORM,
                 lfm_tc=CompoundLFM.UNIFORM,
+                h_mm=0.5,
+                h_MM=0.5
             )
             graph = model.simulate()
 

@@ -71,12 +71,12 @@ def work(queue_tasks: Queue, path: str):
 
         # Generate the graph
         graph = PATCHModel(
-            **model_config.to_dict(split_homophily=True),
+            **model_config.to_dict(patch_model=True),
             seed=i).simulate()
 
         write_graph_to_json(
             **model_config.to_dict(
-                split_homophily=True, stringify=True),
+                patch_model=True, stringify=True),
             path=os.path.join(
                 path,
                 create_file_name(model_config=model_config)),
