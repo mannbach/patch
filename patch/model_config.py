@@ -84,6 +84,8 @@ class ModelConfig:
         # Detect and convert netin 2.x parameter names to internal names
         if "n" in d:
             d["N"] = d.pop("n")
+        if "k" in d:
+            d["m"] = d.pop("k")
 
         # Handle homophily parameters - detect version and convert
         if "h_mm" in d and "h_MM" in d:
@@ -139,6 +141,9 @@ class ModelConfig:
 
             d["n"] = d["N"]
             del d["N"]
+
+            d["k"] = d["m"]
+            del d["m"]
 
         if stringify:
             d["lfm_global"] = self.lfm_global.value

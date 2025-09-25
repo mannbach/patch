@@ -12,7 +12,7 @@ def test_compute_m():
             model = PATCHModel(
                 n=n,
                 f_m=.2,
-                m=m,
+                k=m,
                 tau=0.,
                 lfm_global=CompoundLFM.UNIFORM,
                 lfm_tc=CompoundLFM.UNIFORM,
