@@ -5,6 +5,9 @@ ARG WORKDIR
 # Specify workdir in image
 WORKDIR /patch
 
+# Add code into image for reproducibility
+ADD . /patch/
+
 # Install packages
 RUN \
     pip install --upgrade pip &&\

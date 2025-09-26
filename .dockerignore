@@ -1,0 +1,14 @@
+output/
+data/
+.git/
+.gitignore
+.dockerignore
+*.md
+.env*
+.vscode/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.coverage
+node_modules/
