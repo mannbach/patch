@@ -71,8 +71,14 @@ We explain the code structure by the folder tree
 │   └── statistics.py  # aggregate network inequality statistics
 ├── output  # folder that contains output plots and stats
 ├── requirements.txt  # required software packages
-├── scripts  # scripts to compute data
-│   ├── create_graphs.py # creates graphs and stores them as JSON files
+├── scripts # interface to run inference and simulation studies
+│   ├── inference_study # ELFI inference experiments
+│   │   ├── 01_elfi_validation.py # validate approach on synthetic data
+│   │   ├── 02_elfi_inference.py # run inference on empirical data
+│   │   └── 03_elfi_predictive.py # run predictive analysis with inferred params
+│   └── simulation_study # Simulation experiments
+│       ├── 01_create_graphs.py # creates graphs and stores them as JSON files
+│       └── 02_compute_aggregate_stats.py # compute aggregate statistics from sim. nets
 │   ├── elfi_inference.py # run ELFI inference on empirical datasets
 │   ├── elfi_predictive.py # run ELFI predictive analysis
 │   ├── elfi_validation.py # run ELFI synthetic validation analysis
