@@ -5,9 +5,6 @@ ARG WORKDIR
 # Specify workdir in image
 WORKDIR /patch
 
-# Copy local files to workdir
-ADD . /patch/
-
 # Install packages
 RUN \
     pip install --upgrade pip &&\
