@@ -3,7 +3,6 @@ data/
 .git/
 .gitignore
 .dockerignore
-*.md
 .env*
 .vscode/
 __pycache__/
