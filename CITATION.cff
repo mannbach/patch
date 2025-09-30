@@ -1,0 +1,55 @@
+# This CITATION.cff reference content was generated from Zotero.
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: >-
+    Network Inequality through Preferential Attachment, Triadic Closure, and Homophily
+authors:
+  - family-names: Bachmann
+    given-names: Jan
+    orcid: "https://orcid.org/0000-0002-6153-4714"
+  - family-names: Martin-Gutierrez
+    given-names: Samuel
+    orcid: "https://orcid.org/0000-0002-5685-7834"
+  - family-names: Espín-Noboa
+    given-names: Lisette
+    orcid: "https://orcid.org/0000-0002-3945-2966"
+  - family-names: Cinardi
+    given-names: Nicola
+    orcid: "https://orcid.org/0000-0001-9912-713X"
+  - family-names: Karimi
+    given-names: Fariba
+    orcid: "https://orcid.org/0000-0002-0037-2475"
+version: "v1.3-arxiv"
+doi: 10.48550/arXiv.2509.23205
+date-released: 2024-07-16
+url: https://doi.org/10.48550/arXiv.2509.23205
+preferred-citation:
+  title: >-
+      Network Inequality through Preferential Attachment, Triadic Closure, and Homophily
+  type: preprint
+  database: arXiv.org
+  repository: arXiv
+  url: https://doi.org/10.48550/arXiv.2509.23205
+  keywords:
+    - Computer Science - Social and Information Networks
+    - Physics - Physics and Society
+    - Physics - Data Analysis, Statistics and Probability
+    - J.4; K.4
+    - 62P25, 91D30
+  authors:
+    - family-names: Bachmann
+      given-names: Jan
+      orcid: "https://orcid.org/0000-0002-6153-4714"
+    - family-names: Martin-Gutierrez
+      given-names: Samuel
+      orcid: "https://orcid.org/0000-0002-5685-7834"
+    - family-names: Espín-Noboa
+      given-names: Lisette
+      orcid: "https://orcid.org/0000-0002-3945-2966"
+    - family-names: Cinardi
+      given-names: Nicola
+      orcid: "https://orcid.org/0000-0001-9912-713X"
+    - family-names: Karimi
+      given-names: Fariba
+      orcid: "https://orcid.org/0000-0002-0037-2475"
+  date-published: 2025-09-27
